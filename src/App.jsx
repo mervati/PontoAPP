@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react'
+import { useState, useContext, useEffect } from 'react'
 import { AuthProvider, AuthContext } from './contexts/AuthContext'
 import { PontoProvider } from './contexts/PontoContext'
 import { Auth } from './components/Auth'
@@ -6,10 +6,29 @@ import { Dashboard } from './components/Dashboard'
 import { Historico } from './components/Historico'
 import { Perfil } from './components/Perfil'
 import { Layout } from './components/Layout'
+import { supabase } from './utils/supabase'
 
 function AppContent() {
   const { user, loading } = useContext(AuthContext)
   const [currentTab, setCurrentTab] = useState('home')
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash && hash.includes('access_token')) {
+      const url = new URL(window.location.origin + window.location.pathname + hash)
+      const accessToken = url.searchParams.get('access_token')
+      const refreshToken = url.searchParams.get('refresh_token')
+
+      if (accessToken && refreshToken) {
+        supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        }).then(() => {
+          window.history.replaceState({}, document.title, window.location.pathname)
+        })
+      }
+    }
+  }, [])
 
   if (loading) {
     return (
