@@ -13,11 +13,11 @@ function AppContent() {
   const [currentTab, setCurrentTab] = useState('home')
 
   useEffect(() => {
-    const hash = window.location.hash
+    const hash = window.location.hash.substring(1)
     if (hash && hash.includes('access_token')) {
-      const url = new URL(window.location.origin + window.location.pathname + hash)
-      const accessToken = url.searchParams.get('access_token')
-      const refreshToken = url.searchParams.get('refresh_token')
+      const params = new URLSearchParams(hash)
+      const accessToken = params.get('access_token')
+      const refreshToken = params.get('refresh_token')
 
       if (accessToken && refreshToken) {
         supabase.auth.setSession({
