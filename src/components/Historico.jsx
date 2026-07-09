@@ -594,7 +594,7 @@ export function Historico() {
                               value={novaHora}
                               onChange={(e) => setNovaHora(e.target.value)}
                               onClick={(e) => e.stopPropagation()}
-                              className="bg-gray-600 text-white text-xs px-2 py-1 rounded mt-1 w-20"
+                              className="bg-gray-600 text-white text-sm px-3 py-2 rounded mt-1 w-40"
                               data-edit-input
                               autoFocus
                             />
