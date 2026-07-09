@@ -332,23 +332,24 @@ export function Historico() {
     let y = 42
     const marginLeft = 7
 
-    // Cabeçalho
+    // Cabeçalho com melhor destaque
     doc.setFillColor(25, 118, 118)
     doc.setTextColor(255, 255, 255)
     doc.setFont(undefined, 'bold')
-    doc.setFontSize(9)
+    doc.setFontSize(7)
 
     let x = marginLeft
     headers.forEach((header, i) => {
-      doc.rect(x, y, colWidths[i], 6, 'F')
-      doc.text(header, x + colWidths[i] / 2, y + 4, { align: 'center' })
+      doc.rect(x, y, colWidths[i], 7, 'F')
+      doc.text(header, x + colWidths[i] / 2, y + 4.5, { align: 'center', maxWidth: colWidths[i] - 1 })
       x += colWidths[i]
     })
 
     // Linha separadora
     doc.setDrawColor(25, 118, 118)
     doc.setLineWidth(0.3)
-    doc.line(marginLeft, y + 6, marginLeft + colWidths.reduce((a, b) => a + b), y + 6)
+    doc.line(marginLeft, y + 7, marginLeft + colWidths.reduce((a, b) => a + b), y + 7)
+    y += 1
 
     // Dados
     const pontosDoMes = pontos.filter(p => {
