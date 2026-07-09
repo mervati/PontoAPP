@@ -386,48 +386,16 @@ export function Relatorio() {
               const { horas, minutos, dias } = calcularHoras(periodo.pontos)
 
               return (
-                <div key={periodo.chave} className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-2xl p-4 backdrop-blur-xl shadow-lg hover:border-slate-600/80 transition-all">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-white font-semibold">{periodo.label}</p>
-                      {periodo.dataInicio && (
-                        <p className="text-gray-400 text-xs">
-                          {periodo.dataInicio} até {periodo.dataFim}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-teal-400 font-mono text-lg font-bold">
-                        {formatarHoras(horas, minutos)}h
-                      </p>
-                      <p className="text-gray-400 text-xs">{dias} dia(s)</p>
-                    </div>
-                  </div>
-
-                  {/* Barra de progresso */}
-                  <div className="bg-gray-700 rounded-full h-2 overflow-hidden">
-                    <div
-                      className={`h-full transition-all ${
-                        horas >= 8 * dias ? 'bg-green-500' : 'bg-orange-500'
-                      }`}
-                      style={{
-                        width: `${Math.min(((horas + minutos / 60) / (8 * dias)) * 100, 100)}%`,
-                      }}
-                    ></div>
-                  </div>
-
-                  {/* Meta */}
-                  <p className="text-gray-400 text-xs mt-2">
-                    Meta: {8 * dias}h | Diferença:{' '}
-                    <span
-                      className={
-                        horas >= 8 * dias ? 'text-green-400' : 'text-orange-400'
-                      }
-                    >
-                      {horas >= 8 * dias ? '+' : ''}
-                      {horas - 8 * dias}h{minutos > 0 ? ` ${minutos}m` : ''}
+                <div key={periodo.chave} className="text-gray-300 text-sm py-2 px-3 border-b border-slate-700/30 last:border-b-0">
+                  <span className="font-semibold">{periodo.label}</span>
+                  {periodo.dataInicio && (
+                    <span className="text-gray-500 text-xs ml-2">
+                      {periodo.dataInicio} até {periodo.dataFim}
                     </span>
-                  </p>
+                  )}
+                  <span className="text-teal-400 font-mono float-right">
+                    {formatarHoras(horas, minutos)}h
+                  </span>
                 </div>
               )
             })
