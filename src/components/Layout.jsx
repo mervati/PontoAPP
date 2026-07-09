@@ -1,9 +1,10 @@
-import { Home, Clock, History, User } from 'lucide-react'
+import { Home, Clock, BarChart3, User } from 'lucide-react'
 
 export function Layout({ currentTab, onTabChange, children }) {
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'historia', label: 'Histórico', icon: Clock },
+    { id: 'historico', label: 'Histórico', icon: Clock },
+    { id: 'relatorio', label: 'Relatório', icon: BarChart3 },
     { id: 'perfil', label: 'Perfil', icon: User },
   ]
 

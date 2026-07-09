@@ -4,6 +4,7 @@ import { PontoProvider } from './contexts/PontoContext'
 import { Auth } from './components/Auth'
 import { Dashboard } from './components/Dashboard'
 import { Historico } from './components/Historico'
+import { Relatorio } from './components/Relatorio'
 import { Perfil } from './components/Perfil'
 import { Layout } from './components/Layout'
 import { supabase } from './utils/supabase'
@@ -45,7 +46,8 @@ function AppContent() {
   return (
     <Layout currentTab={currentTab} onTabChange={setCurrentTab}>
       {currentTab === 'home' && <Dashboard />}
-      {currentTab === 'historia' && <Historico />}
+      {currentTab === 'historico' && <Historico />}
+      {currentTab === 'relatorio' && <Relatorio />}
       {currentTab === 'perfil' && <Perfil />}
     </Layout>
   )
