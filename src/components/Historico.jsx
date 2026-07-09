@@ -115,32 +115,37 @@ export function Historico() {
     doc.text(`CONTROLE DE PONTO - ${mes.toUpperCase()}`, 15, 15)
 
     // Info do banco
-    doc.setFontSize(10)
+    doc.setFontSize(9)
     doc.setFont(undefined, 'normal')
-    doc.text('Banco de Horas Anterior: 2:46', 15, 25)
-    doc.text('Jornada Diária Contratual: 8:00', 15, 32)
+    doc.text('Banco de Horas Anterior:', 15, 25)
+    doc.text('Jornada Diária Contratual:', 15, 31)
+
     doc.setFont(undefined, 'bold')
+    doc.text('2:46', 60, 25)
+    doc.text('8:00', 60, 31)
     doc.text('BANCO DE HORAS ACUMULADO: 2:46', 100, 25)
 
-    // Cabeçalho da tabela
-    const headers = ['Data', 'Dia', 'Entrada 1', 'Saída Alm.', 'Entrada Alm.', 'Saída 2', 'Total Trab.', 'Carga Diária', 'Saldo']
-    const colWidths = [18, 22, 18, 18, 18, 18, 18, 18, 18]
-    let y = 45
+    // Tabela
+    const headers = ['Data', 'Dia', 'Entrada 1', 'Saída Alm.', 'Entrada Alm.', 'Saída 2', 'Total Trab.', 'Carga', 'Saldo']
+    const colWidths = [16, 14, 14, 14, 14, 14, 14, 12, 14]
+    let y = 42
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const marginLeft = 10
 
-    // Desenhar cabeçalho
+    // Cabeçalho
     doc.setFillColor(25, 118, 118)
     doc.setTextColor(255, 255, 255)
     doc.setFont(undefined, 'bold')
-    doc.setFontSize(9)
+    doc.setFontSize(8)
 
-    let x = 15
+    let x = marginLeft
     headers.forEach((header, i) => {
-      doc.rect(x, y - 5, colWidths[i], 7, 'F')
-      doc.text(header, x + colWidths[i] / 2, y, { align: 'center' })
+      doc.rect(x, y, colWidths[i], 6, 'F')
+      doc.text(header, x + colWidths[i] / 2, y + 4, { align: 'center' })
       x += colWidths[i]
     })
 
-    // Dados da tabela
+    // Dados
     const pontosDoMes = pontos.filter(p => {
       const data = new Date(p.created_at)
       return data.getMonth() === agora.getMonth() && data.getFullYear() === agora.getFullYear()
@@ -158,7 +163,7 @@ export function Historico() {
     doc.setTextColor(0, 0, 0)
     doc.setFont(undefined, 'normal')
     doc.setFontSize(8)
-    y += 7
+    y += 6
 
     const tableData = []
     let totalHoras = 0
@@ -172,7 +177,7 @@ export function Historico() {
       const entradaAlmoco = diasPontos.find(p => p.tipo === 'entrada_almoco')
       const saida2 = diasPontos.find(p => p.tipo === 'saida_trabalho')
 
-      const formatarHora = (iso) => (iso ? new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-')
+      const formatarHora = (iso) => (iso ? new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '')
 
       let totalTrabalhado = 0
       if (entrada1 && saida2) {
@@ -200,34 +205,39 @@ export function Historico() {
       ])
     })
 
-    // Desenhar linhas
+    // Desenhar dados
     tableData.forEach((row, idx) => {
       if (y > 270) {
         doc.addPage()
-        y = 20
+        y = 10
       }
 
-      x = 15
-      doc.setFillColor(idx % 2 === 0 ? 255 : 240, idx % 2 === 0 ? 255 : 240, idx % 2 === 0 ? 255 : 240)
+      x = marginLeft
+      if (idx % 2 === 0) {
+        doc.setFillColor(245, 245, 245)
+        doc.rect(x, y, colWidths.reduce((a, b) => a + b), 5, 'F')
+      }
+
+      doc.setDrawColor(200, 200, 200)
+      doc.rect(x, y, colWidths.reduce((a, b) => a + b), 5)
 
       row.forEach((cell, i) => {
-        doc.rect(x, y, colWidths[i], 6, 'F')
-        doc.text(String(cell), x + colWidths[i] / 2, y + 4, { align: 'center' })
+        doc.text(String(cell), x + colWidths[i] / 2, y + 3.5, { align: 'center' })
         x += colWidths[i]
       })
 
-      y += 6
+      y += 5
     })
 
-    // Total do mês
-    y += 5
+    // Total
+    y += 3
     doc.setFont(undefined, 'bold')
-    doc.text('Total do Mês', 15, y)
-    doc.text(`${String(totalHoras).padStart(2, '0')}:00`, 80, y)
-    doc.text('160:00', 110, y)
-    doc.text(`${totalHoras >= 160 ? '+' : ''}${String(totalHoras - 160).padStart(2, '0')}:00`, 150, y)
+    x = marginLeft
+    doc.text('Total do Mês', x + 15, y)
+    doc.text(`${String(totalHoras).padStart(2, '0')}:00`, marginLeft + 110, y)
+    doc.text('160:00', marginLeft + 130, y)
+    doc.text(`${totalHoras >= 160 ? '+' : ''}${String(totalHoras - 160).padStart(2, '0')}:00`, marginLeft + 150, y)
 
-    // Download
     const nomeArquivo = `Controle de Ponto - ${mes}.pdf`
     doc.save(nomeArquivo)
   }
