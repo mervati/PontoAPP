@@ -386,34 +386,16 @@ export function Relatorio() {
               const { horas, minutos, dias } = calcularHoras(periodo.pontos)
 
               return (
-                <div key={periodo.chave}>
-                  <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-lg p-3 mb-2">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-white font-semibold text-sm">{periodo.label}</p>
-                        {periodo.dataInicio && (
-                          <p className="text-gray-500 text-xs">
-                            {periodo.dataInicio} até {periodo.dataFim}
-                          </p>
-                        )}
-                      </div>
-                      <p className="text-teal-400 font-mono text-sm font-bold">
-                        {formatarHoras(horas, minutos)}h
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="ml-2 mb-3 space-y-1 text-xs">
-                    {periodo.pontos.map((ponto) => {
-                      const hora = new Date(ponto.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-                      const tipoLabel = ponto.tipo.includes('entrada') ? '📍 Entrada' : '🚪 Saída'
-                      return (
-                        <div key={ponto.id} className="text-gray-400 pl-2 border-l border-teal-500/30">
-                          {tipoLabel} {hora}
-                        </div>
-                      )
-                    })}
-                  </div>
+                <div key={periodo.chave} className="text-gray-300 text-sm py-2 px-3 border-b border-slate-700/30 last:border-b-0">
+                  <span className="font-semibold">{periodo.label}</span>
+                  {periodo.dataInicio && (
+                    <span className="text-gray-500 text-xs ml-2">
+                      {periodo.dataInicio} até {periodo.dataFim}
+                    </span>
+                  )}
+                  <span className="text-teal-400 font-mono float-right">
+                    {formatarHoras(horas, minutos)}h
+                  </span>
                 </div>
               )
             })
