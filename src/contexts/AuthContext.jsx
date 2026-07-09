@@ -13,7 +13,7 @@ export function AuthProvider({ children }) {
       .from('ponto_users')
       .select('id')
       .eq('id', authUser.id)
-      .single()
+      .maybeSingle()
 
     if (!existing) {
       await supabase.from('ponto_users').insert({
