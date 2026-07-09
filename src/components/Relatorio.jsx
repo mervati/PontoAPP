@@ -398,6 +398,14 @@ export function Relatorio() {
 
         {/* Lista de períodos */}
         <div className="space-y-3">
+          {diaSelecionadoInicio && diaSelecionadoFim && (
+            <div className="text-center py-2 px-3 bg-teal-500/20 border border-teal-500/30 rounded-lg">
+              <p className="text-teal-300 font-semibold text-sm">
+                📊 Período: {diaSelecionadoInicio} a {diaSelecionadoFim}
+              </p>
+            </div>
+          )}
+
           {agruparPorPeriodo.length === 0 ? (
             <div className="text-center py-12">
               <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-2xl p-8 backdrop-blur-xl">
