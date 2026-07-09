@@ -57,6 +57,30 @@ export function PontoProvider({ children }) {
     }
   }, [pontos])
 
+  const editarPonto = useCallback(async (pontoId, novaHora) => {
+    try {
+      const { data, error } = await supabase
+        .from('pontos')
+        .update({ created_at: novaHora })
+        .eq('id', pontoId)
+        .select()
+
+      if (error) throw error
+
+      if (data && data.length > 0) {
+        setPontos(pontos.map(p => p.id === pontoId ? data[0] : p))
+        if (data[0].id === ultimoPonto?.id) {
+          setUltimoPonto(data[0])
+        }
+      }
+
+      return data?.[0]
+    } catch (error) {
+      console.error('Erro ao editar ponto:', error)
+      throw error
+    }
+  }, [pontos, ultimoPonto])
+
   const calcularBancoHoras = useCallback((pontos) => {
     if (!pontos || pontos.length === 0) return { horas: 0, minutos: 0, negativo: false }
 
@@ -102,6 +126,7 @@ export function PontoProvider({ children }) {
       ultimoPonto,
       fetchPontos,
       registrarPonto,
+      editarPonto,
       calcularBancoHoras,
     }}>
       {children}
