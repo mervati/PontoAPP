@@ -1,14 +1,20 @@
 import { useContext, useMemo, useState, useEffect } from 'react'
 import { BarChart3, Calendar, Download } from 'lucide-react'
 import { PontoContext } from '../contexts/PontoContext'
+import { AuthContext } from '../contexts/AuthContext'
+import { supabase } from '../utils/supabase'
 import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 export function Relatorio() {
   const { pontos } = useContext(PontoContext)
+  const { user } = useContext(AuthContext)
   const [mesCalendario, setMesCalendario] = useState(new Date())
   const [diaSelecionadoInicio, setDiaSelecionadoInicio] = useState(null)
   const [diaSelecionadoFim, setDiaSelecionadoFim] = useState(null)
   const [tempoAtual, setTempoAtual] = useState(new Date())
+  const [diasFeriados, setDiasFeriados] = useState([])
+  const [bancoInicial, setBancoInicial] = useState(null)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -16,6 +22,27 @@ export function Relatorio() {
     }, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    if (user) {
+      fetchDadosUsuario()
+    }
+  }, [user])
+
+  const fetchDadosUsuario = async () => {
+    try {
+      const { data } = await supabase
+        .from('ponto_users')
+        .select('dias_feriados, banco_horas_inicial')
+        .eq('id', user.id)
+        .single()
+
+      if (data?.dias_feriados) setDiasFeriados(data.dias_feriados)
+      if (data?.banco_horas_inicial) setBancoInicial(data.banco_horas_inicial)
+    } catch (error) {
+      console.error('Erro ao buscar dados do usuário:', error)
+    }
+  }
 
   const getWeekNumber = (date) => {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -303,6 +330,8 @@ export function Relatorio() {
 
   const gerarPDF = () => {
     const doc = new jsPDF('p', 'mm', 'a4')
+
+    // Título reflete o período selecionado no calendário
     const titulo = diaSelecionadoInicio && diaSelecionadoFim
       ? `CONTROLE DE PONTO - ${diaSelecionadoInicio} A ${diaSelecionadoFim}`
       : diaSelecionadoInicio
@@ -313,32 +342,156 @@ export function Relatorio() {
     doc.setFont(undefined, 'bold')
     doc.text(titulo, 15, 15)
 
-    doc.setFontSize(10)
+    // Info do banco
+    const formatarBanco = (h, m, neg) => {
+      const sinal = neg ? '-' : '+'
+      return `${sinal}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+    }
+    const bancoAnterior = bancoInicial
+      ? formatarBanco(bancoInicial.horas, bancoInicial.minutos, bancoInicial.negativo)
+      : '+00:00'
+
+    doc.setFontSize(9)
     doc.setFont(undefined, 'normal')
-    const { horas, minutos, dias } = agruparPorPeriodo.length > 0
-      ? (() => {
-          let total = { horas: 0, minutos: 0, dias: 0 }
-          agruparPorPeriodo.forEach(p => {
-            const calc = calcularHoras(p.pontos)
-            total.horas += calc.horas
-            total.minutos += calc.minutos
-            total.dias += calc.dias
-          })
-          return total
-        })()
-      : { horas: 0, minutos: 0, dias: 0 }
+    doc.text('Banco de Horas Anterior:', 15, 25)
+    doc.text('Jornada Diária Contratual:', 15, 31)
+    doc.setFont(undefined, 'bold')
+    doc.text(bancoAnterior, 60, 25)
+    doc.text('8:00', 60, 31)
+    doc.text(`BANCO DE HORAS ACUMULADO: ${bancoAnterior}`, 100, 25)
 
-    doc.text(`Total Trabalhado: ${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`, 15, 25)
-    doc.text(`Dias: ${dias}`, 15, 32)
+    // Filtrar pontos conforme seleção do calendário
+    let pontosFiltrados
+    if (diaSelecionadoInicio) {
+      const [diaI, mesI, anoI] = diaSelecionadoInicio.split('/').map(Number)
+      const dataInicio = new Date(anoI, mesI - 1, diaI)
+      dataInicio.setHours(0, 0, 0, 0)
 
-    let yPos = 45
-    agruparPorPeriodo.forEach((periodo) => {
-      const { horas: h, minutos: m } = calcularHoras(periodo.pontos)
-      doc.text(`${periodo.label}: ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`, 15, yPos)
-      yPos += 7
+      let dataFim = new Date(dataInicio)
+      if (diaSelecionadoFim) {
+        const [diaF, mesF, anoF] = diaSelecionadoFim.split('/').map(Number)
+        dataFim = new Date(anoF, mesF - 1, diaF)
+      }
+      dataFim.setHours(23, 59, 59, 999)
+
+      pontosFiltrados = pontos.filter(p => {
+        const d = new Date(p.created_at)
+        return d >= dataInicio && d <= dataFim
+      })
+    } else {
+      // Sem seleção: mês do calendário
+      pontosFiltrados = pontos.filter(p => {
+        const d = new Date(p.created_at)
+        return d.getMonth() === mesCalendario.getMonth() && d.getFullYear() === mesCalendario.getFullYear()
+      })
+    }
+
+    // Agrupar por dia
+    const pontosPorDia = {}
+    pontosFiltrados.forEach((ponto) => {
+      const data = new Date(ponto.created_at).toLocaleDateString('pt-BR')
+      if (!pontosPorDia[data]) pontosPorDia[data] = []
+      pontosPorDia[data].push(ponto)
     })
 
-    doc.save(`pontoapp_${new Date().toISOString().split('T')[0]}.pdf`)
+    const headers = [
+      'Data', 'Dia da Semana', 'Entrada 1', 'Saída 1', 'Entrada 2',
+      'Saída 2', 'Entrada 3', 'Saída 3', 'Total', 'Meta', 'Saldo',
+    ]
+
+    const tableData = []
+    let totalHorasMs = 0
+
+    Object.entries(pontosPorDia).forEach(([data, diasPontos]) => {
+      const dataObj = new Date(diasPontos[0].created_at)
+      const diaSemana = dataObj.toLocaleDateString('pt-BR', { weekday: 'long' })
+      const diaFeriado = diasFeriados.find(d => d.data === data)
+
+      if (diaFeriado) {
+        const tipo = diaFeriado.tipo === 'feriado' ? 'FERIADO' : 'FÉRIAS'
+        const justificativa = diaFeriado.justificativa ? ` - ${diaFeriado.justificativa}` : ''
+        tableData.push([
+          data,
+          diaSemana,
+          { content: `${tipo}${justificativa}`, colSpan: 6, styles: { halign: 'center', fontStyle: 'italic' } },
+          '-', '-', '-',
+        ])
+      } else {
+        let entrada1 = diasPontos.find(p => p.tipo === 'ponto_1_entrada')
+        let saida1 = diasPontos.find(p => p.tipo === 'ponto_1_saida')
+        let entrada2 = diasPontos.find(p => p.tipo === 'ponto_2_entrada')
+        let saida2 = diasPontos.find(p => p.tipo === 'ponto_2_saida')
+        let entrada3 = diasPontos.find(p => p.tipo === 'ponto_3_entrada')
+        let saida3 = diasPontos.find(p => p.tipo === 'ponto_3_saida')
+
+        if (!entrada1) entrada1 = diasPontos.find(p => p.tipo === 'entrada_trabalho')
+        if (!saida1) saida1 = diasPontos.find(p => p.tipo === 'saida_trabalho')
+
+        const formatarHora = (iso) => (iso ? new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '')
+
+        let totalTrabalhaoMs = 0
+        if (entrada1 && saida1) totalTrabalhaoMs += new Date(saida1.created_at) - new Date(entrada1.created_at)
+        if (entrada2 && saida2) totalTrabalhaoMs += new Date(saida2.created_at) - new Date(entrada2.created_at)
+        if (entrada3 && saida3) totalTrabalhaoMs += new Date(saida3.created_at) - new Date(entrada3.created_at)
+
+        const horas = Math.floor(totalTrabalhaoMs / (60 * 60 * 1000))
+        const minutos = Math.floor((totalTrabalhaoMs % (60 * 60 * 1000)) / (60 * 1000))
+        const saldoMs = totalTrabalhaoMs - 8 * 60 * 60 * 1000
+        const saldoHoras = Math.floor(Math.abs(saldoMs) / (60 * 60 * 1000))
+        const saldoMinutos = Math.floor((Math.abs(saldoMs) % (60 * 60 * 1000)) / (60 * 1000))
+        const saldoNegativo = saldoMs < 0
+
+        totalHorasMs += totalTrabalhaoMs
+
+        tableData.push([
+          data,
+          diaSemana,
+          formatarHora(entrada1?.created_at),
+          formatarHora(saida1?.created_at),
+          formatarHora(entrada2?.created_at),
+          formatarHora(saida2?.created_at),
+          formatarHora(entrada3?.created_at),
+          formatarHora(saida3?.created_at),
+          `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`,
+          '8:00',
+          `${saldoNegativo ? '-' : '+'}${String(saldoHoras).padStart(2, '0')}:${String(saldoMinutos).padStart(2, '0')}`,
+        ])
+      }
+    })
+
+    // Rodapé com total
+    const totalDias = Object.keys(pontosPorDia).length
+    const totalHoras = Math.floor(totalHorasMs / (60 * 60 * 1000))
+    const totalMinutos = Math.floor((totalHorasMs % (60 * 60 * 1000)) / (60 * 1000))
+    const metaMs = 8 * totalDias * 60 * 60 * 1000
+    const saldoTotalMs = totalHorasMs - metaMs
+    const saldoTotalHoras = Math.floor(Math.abs(saldoTotalMs) / (60 * 60 * 1000))
+    const saldoTotalMinutos = Math.floor((Math.abs(saldoTotalMs) % (60 * 60 * 1000)) / (60 * 1000))
+    const saldoTotalNegativo = saldoTotalMs < 0
+
+    const footRow = [
+      { content: 'Total do Período', colSpan: 8, styles: { halign: 'right' } },
+      `${String(totalHoras).padStart(2, '0')}:${String(totalMinutos).padStart(2, '0')}`,
+      `${8 * totalDias}:00`,
+      `${saldoTotalNegativo ? '-' : '+'}${String(saldoTotalHoras).padStart(2, '0')}:${String(saldoTotalMinutos).padStart(2, '0')}`,
+    ]
+
+    autoTable(doc, {
+      startY: 38,
+      head: [headers],
+      body: tableData,
+      foot: [footRow],
+      theme: 'grid',
+      styles: { fontSize: 8, halign: 'center', valign: 'middle', cellPadding: 1.5 },
+      headStyles: { fillColor: [25, 118, 118], textColor: 255, fontStyle: 'bold', halign: 'center' },
+      bodyStyles: { textColor: 20, halign: 'center' },
+      footStyles: { fillColor: [235, 235, 235], textColor: 0, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      margin: { left: 8, right: 8 },
+    })
+
+    const nomeArquivo = `Controle de Ponto - ${titulo.replace('CONTROLE DE PONTO - ', '')}.pdf`
+    doc.save(nomeArquivo)
   }
 
   return (

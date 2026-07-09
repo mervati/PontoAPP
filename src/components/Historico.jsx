@@ -1,10 +1,8 @@
 import { useContext, useMemo, useState, useEffect, useRef } from 'react'
-import { Clock, Coffee, LogOut, LogIn, Edit2, Check, X, Download, Trash2 } from 'lucide-react'
+import { Clock, Coffee, LogOut, LogIn, Edit2, Check, X, Trash2 } from 'lucide-react'
 import { PontoContext } from '../contexts/PontoContext'
 import { AuthContext } from '../contexts/AuthContext'
 import { supabase } from '../utils/supabase'
-import { jsPDF } from 'jspdf'
-import autoTable from 'jspdf-autotable'
 
 export function Historico() {
   const { user } = useContext(AuthContext)
@@ -282,191 +280,6 @@ export function Historico() {
     }
   }
 
-  const exportarPDF = async () => {
-    // Buscar dias feriados atualizados
-    try {
-      const { data } = await supabase
-        .from('ponto_users')
-        .select('dias_feriados')
-        .eq('id', user.id)
-        .single()
-
-      if (data?.dias_feriados) {
-        setDiasFeriados(data.dias_feriados)
-      }
-    } catch (error) {
-      console.error('Erro ao buscar dias feriados:', error)
-    }
-
-    const doc = new jsPDF('p', 'mm', 'a4')
-    const agora = new Date()
-    const mes = agora.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
-
-    // Título
-    doc.setFontSize(14)
-    doc.setFont(undefined, 'bold')
-    doc.text(`CONTROLE DE PONTO - ${mes.toUpperCase()}`, 15, 15)
-
-    // Info do banco
-    const formatarBanco = (h, m, neg) => {
-      const sinal = neg ? '-' : '+'
-      return `${sinal}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-    }
-
-    const bancoAnterior = bancoInicial
-      ? formatarBanco(bancoInicial.horas, bancoInicial.minutos, bancoInicial.negativo)
-      : '+00:00'
-
-    doc.setFontSize(9)
-    doc.setFont(undefined, 'normal')
-    doc.text('Banco de Horas Anterior:', 15, 25)
-    doc.text('Jornada Diária Contratual:', 15, 31)
-
-    doc.setFont(undefined, 'bold')
-    doc.text(bancoAnterior, 60, 25)
-    doc.text('8:00', 60, 31)
-    doc.text(`BANCO DE HORAS ACUMULADO: ${bancoAnterior}`, 100, 25)
-
-    // Cabeçalhos da tabela
-    const headers = [
-      'Data',
-      'Dia da Semana',
-      'Entrada 1',
-      'Saída 1',
-      'Entrada 2',
-      'Saída 2',
-      'Entrada 3',
-      'Saída 3',
-      'Total',
-      'Meta',
-      'Saldo',
-    ]
-
-    // Dados
-    const pontosDoMes = pontos.filter(p => {
-      const data = new Date(p.created_at)
-      return data.getMonth() === agora.getMonth() && data.getFullYear() === agora.getFullYear()
-    })
-
-    const pontosPorDia = {}
-    pontosDoMes.forEach((ponto) => {
-      const data = new Date(ponto.created_at).toLocaleDateString('pt-BR')
-      if (!pontosPorDia[data]) {
-        pontosPorDia[data] = []
-      }
-      pontosPorDia[data].push(ponto)
-    })
-
-    const tableData = []
-    let totalHorasMs = 0
-
-    Object.entries(pontosPorDia).forEach(([data, diasPontos]) => {
-      const dataObj = new Date(diasPontos[0].created_at)
-      const diaSemana = dataObj.toLocaleDateString('pt-BR', { weekday: 'long' })
-
-      const diaFeriado = diasFeriados.find(d => d.data === data)
-
-      if (diaFeriado) {
-        // Se é feriado ou férias, mostrar diferente (célula mesclada)
-        const tipo = diaFeriado.tipo === 'feriado' ? 'FERIADO' : 'FÉRIAS'
-        const justificativa = diaFeriado.justificativa ? ` - ${diaFeriado.justificativa}` : ''
-
-        tableData.push([
-          data,
-          diaSemana,
-          { content: `${tipo}${justificativa}`, colSpan: 6, styles: { halign: 'center', fontStyle: 'italic' } },
-          '-',
-          '-',
-          '-',
-        ])
-      } else {
-        // Tentar tipos novos primeiro, depois tipos antigos como fallback
-        let entrada1 = diasPontos.find(p => p.tipo === 'ponto_1_entrada')
-        let saida1 = diasPontos.find(p => p.tipo === 'ponto_1_saida')
-        let entrada2 = diasPontos.find(p => p.tipo === 'ponto_2_entrada')
-        let saida2 = diasPontos.find(p => p.tipo === 'ponto_2_saida')
-        let entrada3 = diasPontos.find(p => p.tipo === 'ponto_3_entrada')
-        let saida3 = diasPontos.find(p => p.tipo === 'ponto_3_saida')
-
-        // Fallback para tipos antigos
-        if (!entrada1) entrada1 = diasPontos.find(p => p.tipo === 'entrada_trabalho')
-        if (!saida1) saida1 = diasPontos.find(p => p.tipo === 'saida_trabalho')
-
-        const formatarHora = (iso) => (iso ? new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '')
-
-        let totalTrabalhaoMs = 0
-        if (entrada1 && saida1) {
-          totalTrabalhaoMs += new Date(saida1.created_at) - new Date(entrada1.created_at)
-        }
-        if (entrada2 && saida2) {
-          totalTrabalhaoMs += new Date(saida2.created_at) - new Date(entrada2.created_at)
-        }
-        if (entrada3 && saida3) {
-          totalTrabalhaoMs += new Date(saida3.created_at) - new Date(entrada3.created_at)
-        }
-
-        const horas = Math.floor(totalTrabalhaoMs / (60 * 60 * 1000))
-        const minutos = Math.floor((totalTrabalhaoMs % (60 * 60 * 1000)) / (60 * 1000))
-
-        const tempoEsperadoMs = 8 * 60 * 60 * 1000
-        const saldoMs = totalTrabalhaoMs - tempoEsperadoMs
-        const saldoHoras = Math.floor(Math.abs(saldoMs) / (60 * 60 * 1000))
-        const saldoMinutos = Math.floor((Math.abs(saldoMs) % (60 * 60 * 1000)) / (60 * 1000))
-        const saldoNegativo = saldoMs < 0
-
-        totalHorasMs += totalTrabalhaoMs
-
-        tableData.push([
-          data,
-          diaSemana,
-          formatarHora(entrada1?.created_at),
-          formatarHora(saida1?.created_at),
-          formatarHora(entrada2?.created_at),
-          formatarHora(saida2?.created_at),
-          formatarHora(entrada3?.created_at),
-          formatarHora(saida3?.created_at),
-          `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`,
-          '8:00',
-          `${saldoNegativo ? '-' : '+'}${String(saldoHoras).padStart(2, '0')}:${String(saldoMinutos).padStart(2, '0')}`,
-        ])
-      }
-    })
-
-    // Linha de total do mês (rodapé)
-    const totalHoras = Math.floor(totalHorasMs / (60 * 60 * 1000))
-    const totalMinutos = Math.floor((totalHorasMs % (60 * 60 * 1000)) / (60 * 1000))
-    const metaHoras = 160
-    const saldoTotalMs = totalHorasMs - (metaHoras * 60 * 60 * 1000)
-    const saldoTotalHoras = Math.floor(Math.abs(saldoTotalMs) / (60 * 60 * 1000))
-    const saldoTotalMinutos = Math.floor((Math.abs(saldoTotalMs) % (60 * 60 * 1000)) / (60 * 1000))
-    const saldoTotalNegativo = saldoTotalMs < 0
-
-    const footRow = [
-      { content: 'Total do Mês', colSpan: 8, styles: { halign: 'right' } },
-      `${String(totalHoras).padStart(2, '0')}:${String(totalMinutos).padStart(2, '0')}`,
-      '160:00',
-      `${saldoTotalNegativo ? '-' : '+'}${String(saldoTotalHoras).padStart(2, '0')}:${String(saldoTotalMinutos).padStart(2, '0')}`,
-    ]
-
-    // Gerar tabela com jspdf-autotable
-    autoTable(doc, {
-      startY: 38,
-      head: [headers],
-      body: tableData,
-      foot: [footRow],
-      theme: 'grid',
-      styles: { fontSize: 8, halign: 'center', valign: 'middle', cellPadding: 1.5 },
-      headStyles: { fillColor: [25, 118, 118], textColor: 255, fontStyle: 'bold', halign: 'center' },
-      bodyStyles: { textColor: 20, halign: 'center' },
-      footStyles: { fillColor: [235, 235, 235], textColor: 0, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [245, 245, 245] },
-      margin: { left: 8, right: 8 },
-    })
-
-    const nomeArquivo = `Controle de Ponto - ${mes}.pdf`
-    doc.save(nomeArquivo)
-  }
-
   return (
     <div className="pb-24 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 min-h-screen">
       <div className="bg-gradient-to-r from-teal-600 via-cyan-500 to-blue-600 text-white p-4 relative overflow-hidden">
@@ -475,20 +288,9 @@ export function Historico() {
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-teal-500 rounded-full filter blur-3xl"></div>
         </div>
         <div className="relative z-10">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <p className="text-teal-100 text-xs font-semibold uppercase tracking-widest mb-0.5">📋 Seus Registros</p>
-              <h1 className="text-2xl font-black">Histórico</h1>
-            </div>
-            <button
-              onClick={exportarPDF}
-              className="bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-lg font-semibold flex items-center gap-1 transition text-sm"
-            >
-              <Download size={16} />
-              PDF
-            </button>
-          </div>
-          <p className="text-purple-50 text-xs font-medium">Acompanhe todos seus pontos</p>
+          <p className="text-teal-100 text-xs font-semibold uppercase tracking-widest mb-0.5">📋 Seus Registros</p>
+          <h1 className="text-2xl font-black">Histórico</h1>
+          <p className="text-purple-50 text-xs font-medium mt-1">Acompanhe todos seus pontos</p>
         </div>
       </div>
 
