@@ -161,6 +161,10 @@ export function Dashboard() {
       if (entrada && saida) {
         const tempo = new Date(saida.created_at) - new Date(entrada.created_at)
         tempoTrabalho += tempo
+      } else if (entrada && !saida) {
+        // Se há entrada mas sem saída (ainda trabalhando), conta até agora
+        const tempo = tempoAtual - new Date(entrada.created_at)
+        tempoTrabalho += tempo
       }
     })
 
