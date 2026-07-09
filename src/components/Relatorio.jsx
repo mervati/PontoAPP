@@ -548,10 +548,15 @@ export function Relatorio() {
               if (!dia) return <div key={idx}></div>
 
               const dataStr = `${String(dia).padStart(2, '0')}/${String(mesCalendario.getMonth() + 1).padStart(2, '0')}/${mesCalendario.getFullYear()}`
+              // Converte "DD/MM/YYYY" para Date corretamente (evita o parse americano)
+              const paraData = (str) => {
+                const [d, m, a] = str.split('/').map(Number)
+                return new Date(a, m - 1, d)
+              }
               const selecionado = dataStr === diaSelecionadoInicio || dataStr === diaSelecionadoFim
               const estaNoMeio = diaSelecionadoInicio && diaSelecionadoFim &&
-                new Date(diaSelecionadoInicio) <= new Date(dataStr) &&
-                new Date(dataStr) <= new Date(diaSelecionadoFim)
+                paraData(diaSelecionadoInicio) < paraData(dataStr) &&
+                paraData(dataStr) < paraData(diaSelecionadoFim)
 
               return (
                 <button
