@@ -336,14 +336,19 @@ export function Historico() {
     doc.setFillColor(25, 118, 118)
     doc.setTextColor(255, 255, 255)
     doc.setFont(undefined, 'bold')
-    doc.setFontSize(9)
+    doc.setFontSize(8)
 
     let x = marginLeft
     headers.forEach((header, i) => {
-      doc.rect(x, y, colWidths[i], 6, 'F')
-      doc.text(header, x + colWidths[i] / 2, y + 4, { align: 'center' })
+      doc.rect(x, y, colWidths[i], 7, 'F')
+      doc.text(header, x + colWidths[i] / 2, y + 4.5, { align: 'center' })
       x += colWidths[i]
     })
+
+    // Desenha borda ao redor de todos os headers
+    doc.setDrawColor(25, 118, 118)
+    doc.setLineWidth(0.5)
+    doc.rect(marginLeft, y, colWidths.reduce((a, b) => a + b), 7)
 
     // Dados
     const pontosDoMes = pontos.filter(p => {
@@ -363,7 +368,7 @@ export function Historico() {
     doc.setTextColor(0, 0, 0)
     doc.setFont(undefined, 'normal')
     doc.setFontSize(9)
-    y += 7
+    y += 8
 
     const tableData = []
     let totalHorasMs = 0
