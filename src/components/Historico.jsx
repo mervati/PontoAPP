@@ -592,8 +592,10 @@ export function Historico() {
                               type="time"
                               value={novaHora}
                               onChange={(e) => setNovaHora(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
                               className="bg-gray-600 text-white text-xs px-2 py-1 rounded mt-1 w-20"
                               data-edit-input
+                              autoFocus
                             />
                           ) : (
                             <p className="text-gray-400 text-xs">{formatarHora(ponto.created_at)}</p>
@@ -603,13 +605,19 @@ export function Historico() {
                         {editando ? (
                           <div className="flex gap-2">
                             <button
-                              onClick={() => salvarEdicao(ponto)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                salvarEdicao(ponto)
+                              }}
                               className="p-1 bg-teal-600 hover:bg-teal-700 rounded transition"
                             >
                               <Check size={16} className="text-white" />
                             </button>
                             <button
-                              onClick={cancelarEdicao}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                cancelarEdicao()
+                              }}
                               className="p-1 bg-gray-600 hover:bg-gray-700 rounded transition"
                             >
                               <X size={16} className="text-white" />
@@ -618,13 +626,19 @@ export function Historico() {
                         ) : (
                           <div className="flex gap-2">
                             <button
-                              onClick={() => iniciarEdicao(ponto)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                iniciarEdicao(ponto)
+                              }}
                               className="p-1 hover:bg-gray-600 rounded transition"
                             >
                               <Edit2 size={16} className="text-teal-400" />
                             </button>
                             <button
-                              onClick={() => setDeletandoId(ponto.id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDeletandoId(ponto.id)
+                              }}
                               className="p-1 hover:bg-gray-600 rounded transition"
                             >
                               <Trash2 size={16} className="text-red-400" />
