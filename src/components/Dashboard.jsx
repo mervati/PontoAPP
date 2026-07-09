@@ -176,59 +176,6 @@ export function Dashboard() {
 
   const resultadoDia = calcularResultadoDia()
 
-  const calcularTempoFaltando = () => {
-    if (!resultadoDia.negativo) return null
-
-    const totalDebitoMs = (resultadoDia.horas * 60 * 60 * 1000) + (resultadoDia.minutos * 60 * 1000)
-    const agora = new Date()
-
-    const hojePontos = pontos.filter(p => {
-      const data = new Date(p.created_at).toLocaleDateString('pt-BR')
-      const hoje = new Date().toLocaleDateString('pt-BR')
-      return data === hoje
-    })
-
-    const pares = [
-      { entrada: 'ponto_1_entrada', saida: 'ponto_1_saida', entradaAntiga: 'entrada_trabalho', saidaAntiga: 'saida_trabalho' },
-      { entrada: 'ponto_2_entrada', saida: 'ponto_2_saida' },
-      { entrada: 'ponto_3_entrada', saida: 'ponto_3_saida' },
-    ]
-
-    let tempoTrabalhado = 0
-    let ultimaSaida = null
-
-    pares.forEach((par) => {
-      let entrada = hojePontos.find(p => p.tipo === par.entrada)
-      let saida = hojePontos.find(p => p.tipo === par.saida)
-
-      if (!entrada && par.entradaAntiga) {
-        entrada = hojePontos.find(p => p.tipo === par.entradaAntiga)
-      }
-      if (!saida && par.saidaAntiga) {
-        saida = hojePontos.find(p => p.tipo === par.saidaAntiga)
-      }
-
-      if (entrada && saida) {
-        const tempo = new Date(saida.created_at) - new Date(entrada.created_at)
-        tempoTrabalhado += tempo
-        ultimaSaida = new Date(saida.created_at)
-      }
-    })
-
-    let tempoDisponivel = 0
-    if (ultimaSaida) {
-      tempoDisponivel = agora - ultimaSaida
-    }
-
-    const tempoFaltandoMs = totalDebitoMs - tempoDisponivel
-    const horas = Math.max(0, Math.floor(tempoFaltandoMs / (60 * 60 * 1000)))
-    const minutos = Math.max(0, Math.floor((tempoFaltandoMs % (60 * 60 * 1000)) / (60 * 1000)))
-    const segundos = Math.max(0, Math.floor((tempoFaltandoMs % (60 * 1000)) / 1000))
-
-    return { horas, minutos, segundos }
-  }
-
-  const tempoFaltando = calcularTempoFaltando()
 
   const formatarHoras = (h, m, neg) => {
     const sinal = neg ? '-' : '+'
@@ -352,14 +299,6 @@ export function Dashboard() {
             }`}>
               {formatarHoras(resultadoDia.horas, resultadoDia.minutos, resultadoDia.negativo)}
             </p>
-            {resultadoDia.negativo && tempoFaltando && (
-              <div className="mt-3 pt-3 border-t border-red-500/30">
-                <p className="text-red-300/70 text-xs mb-2">⏱️ Faltam:</p>
-                <p className="text-red-400 font-mono text-lg font-black">
-                  {String(tempoFaltando.horas).padStart(2, '0')}:{String(tempoFaltando.minutos).padStart(2, '0')}:{String(tempoFaltando.segundos).padStart(2, '0')}
-                </p>
-              </div>
-            )}
             <p className="text-gray-400 text-xs mt-2">Horas trabalhadas − 8 horas esperadas</p>
           </div>
           )}
