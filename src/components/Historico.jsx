@@ -345,6 +345,11 @@ export function Historico() {
       x += colWidths[i]
     })
 
+    // Linha separadora
+    doc.setDrawColor(25, 118, 118)
+    doc.setLineWidth(0.3)
+    doc.line(marginLeft, y + 6, marginLeft + colWidths.reduce((a, b) => a + b), y + 6)
+
     // Dados
     const pontosDoMes = pontos.filter(p => {
       const data = new Date(p.created_at)
