@@ -4,17 +4,29 @@ import { PontoContext } from '../contexts/PontoContext'
 
 export function Relatorio() {
   const { pontos } = useContext(PontoContext)
-  const [filtro, setFiltro] = useState('mes') // 'semana' ou 'mes'
-  const [dataInicio, setDataInicio] = useState('')
-  const [dataFim, setDataFim] = useState('')
+  const [filtro, setFiltro] = useState('mes')
 
-  const agruparPorPeriodo = useMemo(() => {
-    if (filtro === 'semana') {
-      return agruparPorSemana()
-    } else {
-      return agruparPorMes()
-    }
-  }, [pontos, filtro])
+  const getWeekNumber = (date) => {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+    const dayNum = d.getUTCDay() || 7
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7)
+  }
+
+  const getFirstDayOfWeek = (date) => {
+    const d = new Date(date)
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+    return new Date(d.setDate(diff)).toLocaleDateString('pt-BR')
+  }
+
+  const getLastDayOfWeek = (date) => {
+    const d = new Date(date)
+    const day = d.getDay()
+    const diff = d.getDate() - day + (day === 0 ? 0 : 7)
+    return new Date(d.setDate(diff)).toLocaleDateString('pt-BR')
+  }
 
   const agruparPorSemana = () => {
     const grupos = {}
@@ -69,6 +81,14 @@ export function Relatorio() {
     return Object.values(grupos).sort((a, b) => b.chave.localeCompare(a.chave))
   }
 
+  const agruparPorPeriodo = useMemo(() => {
+    if (filtro === 'semana') {
+      return agruparPorSemana()
+    } else {
+      return agruparPorMes()
+    }
+  }, [pontos, filtro])
+
   const calcularHoras = (diasPontos) => {
     let totalMs = 0
 
@@ -105,28 +125,6 @@ export function Relatorio() {
 
   const formatarHoras = (h, m) => {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
-  }
-
-  const getWeekNumber = (date) => {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
-    const dayNum = d.getUTCDay() || 7
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum)
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
-    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7)
-  }
-
-  const getFirstDayOfWeek = (date) => {
-    const d = new Date(date)
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-    return new Date(d.setDate(diff)).toLocaleDateString('pt-BR')
-  }
-
-  const getLastDayOfWeek = (date) => {
-    const d = new Date(date)
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? 0 : 7)
-    return new Date(d.setDate(diff)).toLocaleDateString('pt-BR')
   }
 
   return (
