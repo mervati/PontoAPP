@@ -4,7 +4,9 @@ import { PontoContext } from '../contexts/PontoContext'
 
 export function Relatorio() {
   const { pontos } = useContext(PontoContext)
-  const [filtro, setFiltro] = useState('mes')
+  const [mesCalendario, setMesCalendario] = useState(new Date())
+  const [diaSelecionadoInicio, setDiaSelecionadoInicio] = useState(null)
+  const [diaSelecionadoFim, setDiaSelecionadoFim] = useState(null)
 
   const getWeekNumber = (date) => {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -81,13 +83,79 @@ export function Relatorio() {
     return Object.values(grupos).sort((a, b) => b.chave.localeCompare(a.chave))
   }
 
-  const agruparPorPeriodo = useMemo(() => {
-    if (filtro === 'semana') {
-      return agruparPorSemana()
+  const gerarDiasCalendario = () => {
+    const ano = mesCalendario.getFullYear()
+    const mes = mesCalendario.getMonth()
+    const primeiroDia = new Date(ano, mes, 1)
+    const ultimoDia = new Date(ano, mes + 1, 0)
+    const diasMes = ultimoDia.getDate()
+    const comecaEm = primeiroDia.getDay()
+
+    const dias = []
+    for (let i = 0; i < comecaEm; i++) {
+      dias.push(null)
+    }
+    for (let i = 1; i <= diasMes; i++) {
+      dias.push(i)
+    }
+    return dias
+  }
+
+  const getStatusDia = (dia) => {
+    const dataStr = `${String(dia).padStart(2, '0')}/${String(mesCalendario.getMonth() + 1).padStart(2, '0')}/${mesCalendario.getFullYear()}`
+
+    const temPontos = Object.entries(pontos).filter(([p]) => {
+      return new Date(p.created_at).toLocaleDateString('pt-BR') === dataStr
+    })
+
+    if (temPontos.length === 0) return null
+    return 'completo'
+  }
+
+  const handleSelectDia = (dia) => {
+    const dataStr = `${String(dia).padStart(2, '0')}/${String(mesCalendario.getMonth() + 1).padStart(2, '0')}/${mesCalendario.getFullYear()}`
+
+    if (!diaSelecionadoInicio) {
+      setDiaSelecionadoInicio(dataStr)
+    } else if (!diaSelecionadoFim) {
+      setDiaSelecionadoFim(dataStr)
     } else {
+      setDiaSelecionadoInicio(dataStr)
+      setDiaSelecionadoFim(null)
+    }
+  }
+
+  const agruparPorPeriodo = useMemo(() => {
+    if (!diaSelecionadoInicio || !diaSelecionadoFim) {
       return agruparPorMes()
     }
-  }, [pontos, filtro])
+
+    // Filtrar pontos pelo período selecionado
+    const [diaI, mesI, anoI] = diaSelecionadoInicio.split('/').map(Number)
+    const [diaF, mesF, anoF] = diaSelecionadoFim.split('/').map(Number)
+    const dataInicio = new Date(anoI, mesI - 1, diaI)
+    const dataFim = new Date(anoF, mesF - 1, diaF)
+
+    const pontosFiltrados = pontos.filter(p => {
+      const dataPonto = new Date(p.created_at)
+      return dataPonto >= dataInicio && dataPonto <= dataFim
+    })
+
+    const grupos = {}
+    pontosFiltrados.forEach(ponto => {
+      const data = new Date(ponto.created_at).toLocaleDateString('pt-BR')
+      if (!grupos[data]) {
+        grupos[data] = []
+      }
+      grupos[data].push(ponto)
+    })
+
+    return Object.entries(grupos).map(([data, pts]) => ({
+      chave: data,
+      label: data,
+      pontos: pts,
+    }))
+  }, [pontos, diaSelecionadoInicio, diaSelecionadoFim])
 
   const calcularHoras = (diasPontos) => {
     let totalMs = 0
@@ -223,30 +291,74 @@ export function Relatorio() {
       </div>
 
       <div className="px-3 pt-4 space-y-3">
-        {/* Filtro de período */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFiltro('mes')}
-            className={`flex-1 py-2 rounded-xl font-semibold transition text-sm ${
-              filtro === 'mes'
-                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/30'
-                : 'bg-slate-800/50 border border-slate-700/50 text-gray-400 hover:border-slate-600'
-            }`}
-          >
-            <Calendar size={16} className="inline mr-1" />
-            Mês
-          </button>
-          <button
-            onClick={() => setFiltro('semana')}
-            className={`flex-1 py-2 rounded-xl font-semibold transition text-sm ${
-              filtro === 'semana'
-                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/30'
-                : 'bg-slate-800/50 border border-slate-700/50 text-gray-400 hover:border-slate-600'
-            }`}
-          >
-            <Calendar size={16} className="inline mr-1" />
-            Semana
-          </button>
+        {/* Calendário */}
+        <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-2xl p-4 backdrop-blur-xl shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => setMesCalendario(new Date(mesCalendario.getFullYear(), mesCalendario.getMonth() - 1))}
+              className="text-teal-400 hover:text-teal-300 font-bold text-lg"
+            >
+              ←
+            </button>
+            <p className="text-white font-bold">
+              {mesCalendario.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+            </p>
+            <button
+              onClick={() => setMesCalendario(new Date(mesCalendario.getFullYear(), mesCalendario.getMonth() + 1))}
+              className="text-teal-400 hover:text-teal-300 font-bold text-lg"
+            >
+              →
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 text-xs text-center mb-3">
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'].map(dia => (
+              <div key={dia} className="text-gray-400 font-bold py-1">{dia}</div>
+            ))}
+            {gerarDiasCalendario().map((dia, idx) => {
+              if (!dia) return <div key={idx}></div>
+
+              const dataStr = `${String(dia).padStart(2, '0')}/${String(mesCalendario.getMonth() + 1).padStart(2, '0')}/${mesCalendario.getFullYear()}`
+              const selecionado = dataStr === diaSelecionadoInicio || dataStr === diaSelecionadoFim
+              const estaNoMeio = diaSelecionadoInicio && diaSelecionadoFim &&
+                new Date(diaSelecionadoInicio) <= new Date(dataStr) &&
+                new Date(dataStr) <= new Date(diaSelecionadoFim)
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => handleSelectDia(dia)}
+                  className={`py-1 rounded text-white text-xs font-semibold transition ${
+                    selecionado
+                      ? 'bg-teal-600 text-white'
+                      : estaNoMeio
+                      ? 'bg-teal-500/30 border border-teal-500/50'
+                      : 'hover:bg-slate-700/50'
+                  }`}
+                >
+                  {dia}
+                </button>
+              )
+            })}
+          </div>
+
+          {(diaSelecionadoInicio || diaSelecionadoFim) && (
+            <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-slate-700/50">
+              <p>
+                {diaSelecionadoInicio && `De: ${diaSelecionadoInicio}`}
+                {diaSelecionadoFim && ` até: ${diaSelecionadoFim}`}
+              </p>
+              <button
+                onClick={() => {
+                  setDiaSelecionadoInicio(null)
+                  setDiaSelecionadoFim(null)
+                }}
+                className="text-teal-400 hover:text-teal-300"
+              >
+                ✕ Limpar
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Estatísticas */}
