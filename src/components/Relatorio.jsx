@@ -1,6 +1,7 @@
 import { useContext, useMemo, useState, useEffect } from 'react'
-import { BarChart3, Calendar } from 'lucide-react'
+import { BarChart3, Calendar, Download } from 'lucide-react'
 import { PontoContext } from '../contexts/PontoContext'
+import { jsPDF } from 'jspdf'
 
 export function Relatorio() {
   const { pontos } = useContext(PontoContext)
@@ -300,6 +301,46 @@ export function Relatorio() {
     return calcularEstatisticas()
   }, [pontos, tempoAtual])
 
+  const gerarPDF = () => {
+    const doc = new jsPDF('p', 'mm', 'a4')
+    const titulo = diaSelecionadoInicio && diaSelecionadoFim
+      ? `CONTROLE DE PONTO - ${diaSelecionadoInicio} A ${diaSelecionadoFim}`
+      : diaSelecionadoInicio
+      ? `CONTROLE DE PONTO - ${diaSelecionadoInicio}`
+      : `CONTROLE DE PONTO - ${mesCalendario.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()}`
+
+    doc.setFontSize(14)
+    doc.setFont(undefined, 'bold')
+    doc.text(titulo, 15, 15)
+
+    doc.setFontSize(10)
+    doc.setFont(undefined, 'normal')
+    const { horas, minutos, dias } = agruparPorPeriodo.length > 0
+      ? (() => {
+          let total = { horas: 0, minutos: 0, dias: 0 }
+          agruparPorPeriodo.forEach(p => {
+            const calc = calcularHoras(p.pontos)
+            total.horas += calc.horas
+            total.minutos += calc.minutos
+            total.dias += calc.dias
+          })
+          return total
+        })()
+      : { horas: 0, minutos: 0, dias: 0 }
+
+    doc.text(`Total Trabalhado: ${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`, 15, 25)
+    doc.text(`Dias: ${dias}`, 15, 32)
+
+    let yPos = 45
+    agruparPorPeriodo.forEach((periodo) => {
+      const { horas: h, minutos: m } = calcularHoras(periodo.pontos)
+      doc.text(`${periodo.label}: ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`, 15, yPos)
+      yPos += 7
+    })
+
+    doc.save(`pontoapp_${new Date().toISOString().split('T')[0]}.pdf`)
+  }
+
   return (
     <div className="pb-24 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 min-h-screen">
       <div className="bg-gradient-to-r from-teal-600 via-cyan-500 to-blue-600 text-white p-4 relative overflow-hidden">
@@ -307,10 +348,21 @@ export function Relatorio() {
           <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl"></div>
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-teal-500 rounded-full filter blur-3xl"></div>
         </div>
-        <div className="relative z-10">
-          <p className="text-teal-100 text-xs font-semibold uppercase tracking-widest mb-0.5">📊 Análise de Horas</p>
-          <h1 className="text-2xl font-black">Relatório</h1>
-          <p className="text-blue-50 text-xs font-medium mt-1">Resumo de horas por período</p>
+        <div className="relative z-10 flex items-start justify-between">
+          <div>
+            <p className="text-teal-100 text-xs font-semibold uppercase tracking-widest mb-0.5">📊 Análise de Horas</p>
+            <h1 className="text-2xl font-black">Relatório</h1>
+            <p className="text-blue-50 text-xs font-medium mt-1">Resumo de horas por período</p>
+          </div>
+          {(diaSelecionadoInicio || agruparPorPeriodo.length > 0) && (
+            <button
+              onClick={gerarPDF}
+              className="bg-white/20 hover:bg-white/30 backdrop-blur text-white px-4 py-2 rounded-lg flex items-center gap-2 transition"
+            >
+              <Download size={20} />
+              <span className="text-sm font-semibold">PDF</span>
+            </button>
+          )}
         </div>
       </div>
 
