@@ -108,6 +108,7 @@ export function PontoProvider({ children }) {
     }
 
     let totalMs = 0
+    const diasTrabalho = new Set()
 
     const pontosPorDia = {}
     pontos.forEach((ponto) => {
@@ -118,21 +119,39 @@ export function PontoProvider({ children }) {
       pontosPorDia[data].push(ponto)
     })
 
+
     Object.values(pontosPorDia).forEach((diasPontos) => {
-      const tipos = ['entrada_trabalho', 'entrada_almoco', 'saida_almoco', 'saida_trabalho']
-      const pcs = tipos.map(t => diasPontos.find(p => p.tipo === t))
+      diasTrabalho.add(diasPontos.length > 0 ? 1 : 0)
 
-      if (pcs[0] && pcs[3]) {
-        let tempoTrabalho = new Date(pcs[3].created_at) - new Date(pcs[0].created_at)
+      // 6 pares: entrada1-saida1, entrada2-saida2, entrada3-saida3
+      const pares = [
+        { entrada: 'ponto_1_entrada', saida: 'ponto_1_saida', entradaAntiga: 'entrada_trabalho', saidaAntiga: 'saida_trabalho' },
+        { entrada: 'ponto_2_entrada', saida: 'ponto_2_saida' },
+        { entrada: 'ponto_3_entrada', saida: 'ponto_3_saida' },
+      ]
 
-        if (pcs[1] && pcs[2]) {
-          const tempoAlmoco = new Date(pcs[2].created_at) - new Date(pcs[1].created_at)
-          tempoTrabalho -= tempoAlmoco
+      let tempoTrabalho = 0
+
+      pares.forEach((par) => {
+        let entrada = diasPontos.find(p => p.tipo === par.entrada)
+        let saida = diasPontos.find(p => p.tipo === par.saida)
+
+        // Fallback para tipos antigos (compatibilidade com dados antigos)
+        if (!entrada && par.entradaAntiga) {
+          entrada = diasPontos.find(p => p.tipo === par.entradaAntiga)
+        }
+        if (!saida && par.saidaAntiga) {
+          saida = diasPontos.find(p => p.tipo === par.saidaAntiga)
         }
 
-        const tempoEsperado = 8 * 60 * 60 * 1000
-        totalMs += tempoTrabalho - tempoEsperado
-      }
+        if (entrada && saida) {
+          const tempo = new Date(saida.created_at) - new Date(entrada.created_at)
+          tempoTrabalho += tempo
+        }
+      })
+
+      const tempoEsperado = 8 * 60 * 60 * 1000
+      totalMs += tempoTrabalho - tempoEsperado
     })
 
     // Adicionar banco inicial (se houver)
@@ -144,6 +163,7 @@ export function PontoProvider({ children }) {
     const horas = Math.floor(Math.abs(totalMs) / (60 * 60 * 1000))
     const minutos = Math.floor((Math.abs(totalMs) % (60 * 60 * 1000)) / (60 * 1000))
     const negativo = totalMs < 0
+
 
     return { horas, minutos, negativo }
   }, [])

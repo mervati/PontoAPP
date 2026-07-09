@@ -82,37 +82,44 @@ export function Perfil() {
   }
 
   return (
-    <div className="pb-20">
-      <div className="bg-gradient-to-b from-teal-700 to-teal-800 text-white p-6 rounded-b-3xl">
-        <h1 className="text-3xl font-bold mb-2">Perfil</h1>
-        <p className="text-teal-100">Suas informações</p>
+    <div className="pb-24 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 min-h-screen">
+      <div className="bg-gradient-to-r from-teal-600 via-cyan-500 to-blue-600 text-white p-4 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-teal-500 rounded-full filter blur-3xl"></div>
+        </div>
+        <div className="relative z-10">
+          <p className="text-teal-100 text-xs font-semibold uppercase tracking-widest mb-0.5">👤 Sua Conta</p>
+          <h1 className="text-2xl font-black">Perfil</h1>
+          <p className="text-indigo-50 text-xs font-medium mt-1">Gerencie suas informações</p>
+        </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-400"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
         </div>
       ) : (
-        <div className="p-4 space-y-4">
-          <div className="bg-gray-800 rounded-2xl p-6 text-center">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 mx-auto mb-4 flex items-center justify-center">
-              <User className="text-white" size={40} />
+        <div className="px-3 pt-4 space-y-3">
+          <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-2xl p-5 text-center backdrop-blur-xl shadow-lg">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 mx-auto mb-3 flex items-center justify-center shadow-lg shadow-teal-500/30">
+              <User className="text-white" size={32} />
             </div>
-            <h2 className="text-white text-xl font-bold mb-1">{userData?.full_name || 'Usuário'}</h2>
-            <p className="text-gray-400 text-sm">{user?.email}</p>
+            <h2 className="text-white text-lg font-bold mb-1">{userData?.full_name || 'Usuário'}</h2>
+            <p className="text-gray-400 text-xs">{user?.email}</p>
           </div>
 
-          <div className="bg-gray-800 rounded-2xl p-4 space-y-3">
-            <div className="flex items-center gap-3 pb-3 border-b border-gray-700">
-              <User className="text-teal-400" size={20} />
+          <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-2xl p-3 space-y-2 backdrop-blur-xl shadow-lg">
+            <div className="flex items-center gap-3 pb-2 border-b border-slate-700/50">
+              <User className="text-teal-400" size={18} />
               <div>
                 <p className="text-gray-400 text-xs">Nome Completo</p>
-                <p className="text-white">{userData?.full_name || '-'}</p>
+                <p className="text-white text-sm">{userData?.full_name || '-'}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <Mail className="text-teal-400" size={20} />
+              <Mail className="text-purple-400" size={18} />
               <div>
                 <p className="text-gray-400 text-xs">Email</p>
                 <p className="text-white text-sm">{user?.email}</p>

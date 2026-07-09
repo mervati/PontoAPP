@@ -102,19 +102,33 @@ export function Relatorio() {
     })
 
     Object.values(pontosPorDia).forEach((diasPontos) => {
-      const tipos = ['entrada_trabalho', 'entrada_almoco', 'saida_almoco', 'saida_trabalho']
-      const pcs = tipos.map(t => diasPontos.find(p => p.tipo === t))
+      const pares = [
+        { entrada: 'ponto_1_entrada', saida: 'ponto_1_saida', entradaAntiga: 'entrada_trabalho', saidaAntiga: 'saida_trabalho' },
+        { entrada: 'ponto_2_entrada', saida: 'ponto_2_saida' },
+        { entrada: 'ponto_3_entrada', saida: 'ponto_3_saida' },
+      ]
 
-      if (pcs[0] && pcs[3]) {
-        let tempoTrabalho = new Date(pcs[3].created_at) - new Date(pcs[0].created_at)
+      let tempoTrabalho = 0
 
-        if (pcs[1] && pcs[2]) {
-          const tempoAlmoco = new Date(pcs[2].created_at) - new Date(pcs[1].created_at)
-          tempoTrabalho -= tempoAlmoco
+      pares.forEach((par) => {
+        let entrada = diasPontos.find(p => p.tipo === par.entrada)
+        let saida = diasPontos.find(p => p.tipo === par.saida)
+
+        // Fallback para tipos antigos
+        if (!entrada && par.entradaAntiga) {
+          entrada = diasPontos.find(p => p.tipo === par.entradaAntiga)
+        }
+        if (!saida && par.saidaAntiga) {
+          saida = diasPontos.find(p => p.tipo === par.saidaAntiga)
         }
 
-        totalMs += tempoTrabalho
-      }
+        if (entrada && saida) {
+          const tempo = new Date(saida.created_at) - new Date(entrada.created_at)
+          tempoTrabalho += tempo
+        }
+      })
+
+      totalMs += tempoTrabalho
     })
 
     const horas = Math.floor(totalMs / (60 * 60 * 1000))
@@ -128,35 +142,42 @@ export function Relatorio() {
   }
 
   return (
-    <div className="pb-20">
-      <div className="bg-gradient-to-b from-teal-700 to-teal-800 text-white p-6 rounded-b-3xl">
-        <h1 className="text-3xl font-bold mb-2">Relatório</h1>
-        <p className="text-teal-100">Resumo de horas por período</p>
+    <div className="pb-24 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 min-h-screen">
+      <div className="bg-gradient-to-r from-teal-600 via-cyan-500 to-blue-600 text-white p-4 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-teal-500 rounded-full filter blur-3xl"></div>
+        </div>
+        <div className="relative z-10">
+          <p className="text-teal-100 text-xs font-semibold uppercase tracking-widest mb-0.5">📊 Análise de Horas</p>
+          <h1 className="text-2xl font-black">Relatório</h1>
+          <p className="text-blue-50 text-xs font-medium mt-1">Resumo de horas por período</p>
+        </div>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="px-3 pt-4 space-y-3">
         {/* Filtro de período */}
         <div className="flex gap-2">
           <button
             onClick={() => setFiltro('mes')}
-            className={`flex-1 py-3 rounded-xl font-semibold transition ${
+            className={`flex-1 py-2 rounded-xl font-semibold transition text-sm ${
               filtro === 'mes'
-                ? 'bg-teal-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/30'
+                : 'bg-slate-800/50 border border-slate-700/50 text-gray-400 hover:border-slate-600'
             }`}
           >
-            <Calendar size={18} className="inline mr-2" />
+            <Calendar size={16} className="inline mr-1" />
             Mês
           </button>
           <button
             onClick={() => setFiltro('semana')}
-            className={`flex-1 py-3 rounded-xl font-semibold transition ${
+            className={`flex-1 py-2 rounded-xl font-semibold transition text-sm ${
               filtro === 'semana'
-                ? 'bg-teal-600 text-white'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/30'
+                : 'bg-slate-800/50 border border-slate-700/50 text-gray-400 hover:border-slate-600'
             }`}
           >
-            <Calendar size={18} className="inline mr-2" />
+            <Calendar size={16} className="inline mr-1" />
             Semana
           </button>
         </div>
@@ -165,15 +186,17 @@ export function Relatorio() {
         <div className="space-y-3">
           {agruparPorPeriodo.length === 0 ? (
             <div className="text-center py-12">
-              <BarChart3 className="mx-auto text-gray-600 mb-4" size={48} />
-              <p className="text-gray-400">Nenhum ponto registrado ainda</p>
+              <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-2xl p-8 backdrop-blur-xl">
+                <BarChart3 className="mx-auto text-slate-600 mb-4" size={48} />
+                <p className="text-gray-400 font-semibold">Nenhum ponto registrado ainda</p>
+              </div>
             </div>
           ) : (
             agruparPorPeriodo.map((periodo) => {
               const { horas, minutos, dias } = calcularHoras(periodo.pontos)
 
               return (
-                <div key={periodo.chave} className="bg-gray-800 rounded-2xl p-4">
+                <div key={periodo.chave} className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-2xl p-4 backdrop-blur-xl shadow-lg hover:border-slate-600/80 transition-all">
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <p className="text-white font-semibold">{periodo.label}</p>
