@@ -343,20 +343,23 @@ export function Relatorio() {
           </div>
 
           {(diaSelecionadoInicio || diaSelecionadoFim) && (
-            <div className="flex items-center justify-between text-xs text-gray-400 pt-2 border-t border-slate-700/50">
-              <p>
-                {diaSelecionadoInicio && `De: ${diaSelecionadoInicio}`}
-                {diaSelecionadoFim && ` até: ${diaSelecionadoFim}`}
-              </p>
-              <button
-                onClick={() => {
-                  setDiaSelecionadoInicio(null)
-                  setDiaSelecionadoFim(null)
-                }}
-                className="text-teal-400 hover:text-teal-300"
-              >
-                ✕ Limpar
-              </button>
+            <div className="mt-3 pt-3 border-t border-slate-700/50">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-teal-300 text-sm font-semibold">
+                  {diaSelecionadoInicio && `📍 Início: ${diaSelecionadoInicio}`}
+                  {diaSelecionadoFim && ` | Fim: ${diaSelecionadoFim}`}
+                  {diaSelecionadoInicio && !diaSelecionadoFim && ' (clique no dia final)'}
+                </p>
+                <button
+                  onClick={() => {
+                    setDiaSelecionadoInicio(null)
+                    setDiaSelecionadoFim(null)
+                  }}
+                  className="text-red-400 hover:text-red-300 text-sm font-bold"
+                >
+                  ✕ Limpar
+                </button>
+              </div>
             </div>
           )}
         </div>
