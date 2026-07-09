@@ -352,7 +352,15 @@ export function Dashboard() {
             }`}>
               {formatarHoras(resultadoDia.horas, resultadoDia.minutos, resultadoDia.negativo)}
             </p>
-            <p className="text-gray-400 text-xs">Horas trabalhadas − 8 horas esperadas</p>
+            {resultadoDia.negativo && tempoFaltando && (
+              <div className="mt-3 pt-3 border-t border-red-500/30">
+                <p className="text-red-300/70 text-xs mb-2">⏱️ Faltam:</p>
+                <p className="text-red-400 font-mono text-lg font-black">
+                  {String(tempoFaltando.horas).padStart(2, '0')}:{String(tempoFaltando.minutos).padStart(2, '0')}:{String(tempoFaltando.segundos).padStart(2, '0')}
+                </p>
+              </div>
+            )}
+            <p className="text-gray-400 text-xs mt-2">Horas trabalhadas − 8 horas esperadas</p>
           </div>
           )}
         </div>
@@ -383,21 +391,6 @@ export function Dashboard() {
             )}
           </div>
         </div>
-
-        {resultadoDia?.negativo && tempoFaltando && (
-          <div className="mt-3 bg-gradient-to-br from-red-600/30 to-red-500/20 border border-red-500/50 rounded-2xl p-4 backdrop-blur-xl shadow-xl">
-            <p className="text-red-200 text-xs font-bold uppercase tracking-widest mb-3">⏱️ Tempo para Zerar Débito Hoje</p>
-            <div className="bg-red-900/40 rounded-xl p-3 text-center border border-red-500/30">
-              <p className="text-red-300 text-xs mb-2">Você precisa trabalhar mais:</p>
-              <p className="text-red-400 font-mono text-2xl font-black">
-                {String(tempoFaltando.horas).padStart(2, '0')}:{String(tempoFaltando.minutos).padStart(2, '0')}:{String(tempoFaltando.segundos).padStart(2, '0')}
-              </p>
-              <p className="text-red-300/60 text-xs mt-2">
-                {tempoFaltando.horas}h {tempoFaltando.minutos}m
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )
