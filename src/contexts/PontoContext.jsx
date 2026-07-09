@@ -57,6 +57,27 @@ export function PontoProvider({ children }) {
     }
   }, [pontos])
 
+  const deletarPonto = useCallback(async (pontoId) => {
+    try {
+      const { error } = await supabase
+        .from('pontos')
+        .delete()
+        .eq('id', pontoId)
+
+      if (error) throw error
+
+      setPontos(pontos.filter(p => p.id !== pontoId))
+      if (ultimoPonto?.id === pontoId) {
+        setUltimoPonto(pontos.find(p => p.id !== pontoId) || null)
+      }
+
+      return true
+    } catch (error) {
+      console.error('Erro ao deletar ponto:', error)
+      throw error
+    }
+  }, [pontos, ultimoPonto])
+
   const editarPonto = useCallback(async (pontoId, novaHora) => {
     try {
       const { data, error } = await supabase
@@ -135,6 +156,7 @@ export function PontoProvider({ children }) {
       fetchPontos,
       registrarPonto,
       editarPonto,
+      deletarPonto,
       calcularBancoHoras,
     }}>
       {children}

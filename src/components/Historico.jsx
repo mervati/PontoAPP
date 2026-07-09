@@ -1,5 +1,5 @@
 import { useContext, useMemo, useState, useEffect } from 'react'
-import { Clock, Coffee, LogOut, LogIn, Edit2, Check, X, Download } from 'lucide-react'
+import { Clock, Coffee, LogOut, LogIn, Edit2, Check, X, Download, Trash2 } from 'lucide-react'
 import { PontoContext } from '../contexts/PontoContext'
 import { AuthContext } from '../contexts/AuthContext'
 import { supabase } from '../utils/supabase'
@@ -7,10 +7,11 @@ import { jsPDF } from 'jspdf'
 
 export function Historico() {
   const { user } = useContext(AuthContext)
-  const { pontos, editarPonto, calcularBancoHoras } = useContext(PontoContext)
+  const { pontos, editarPonto, deletarPonto } = useContext(PontoContext)
   const [editandoId, setEditandoId] = useState(null)
   const [novaHora, setNovaHora] = useState('')
   const [bancoInicial, setBancoInicial] = useState(null)
+  const [deletandoId, setDeletandoId] = useState(null)
 
   useEffect(() => {
     if (user) {
@@ -104,6 +105,16 @@ export function Historico() {
     setNovaHora('')
   }
 
+  const confirmarDelecao = async (pontoId) => {
+    try {
+      await deletarPonto(pontoId)
+      setDeletandoId(null)
+      alert('Ponto deletado com sucesso!')
+    } catch (error) {
+      alert('Erro ao deletar ponto: ' + error.message)
+    }
+  }
+
   const exportarPDF = () => {
     const doc = new jsPDF('p', 'mm', 'a4')
     const agora = new Date()
@@ -138,7 +149,6 @@ export function Historico() {
     const headers = ['Data', 'Dia', 'Entrada 1', 'Saída Alm.', 'Entrada Alm.', 'Saída 2', 'Total Trab.', 'Carga', 'Saldo']
     const colWidths = [16, 14, 14, 14, 14, 14, 14, 12, 14]
     let y = 42
-    const pageWidth = doc.internal.pageSize.getWidth()
     const marginLeft = 10
 
     // Cabeçalho
@@ -290,44 +300,79 @@ export function Historico() {
                   const editando = editandoId === ponto.id
 
                   return (
-                    <div key={ponto.id} className="flex items-center gap-3 p-2 bg-gray-700/50 rounded-lg">
-                      <Icon className={`${tipo.cor}`} size={20} />
-                      <div className="flex-1">
-                        <p className="text-white text-sm">{tipo.label}</p>
+                    <div key={ponto.id}>
+                      <div className="flex items-center gap-3 p-2 bg-gray-700/50 rounded-lg group">
+                        <Icon className={`${tipo.cor}`} size={20} />
+                        <div className="flex-1">
+                          <p className="text-white text-sm">{tipo.label}</p>
+                          {editando ? (
+                            <input
+                              type="time"
+                              value={novaHora}
+                              onChange={(e) => setNovaHora(e.target.value)}
+                              className="bg-gray-600 text-white text-xs px-2 py-1 rounded mt-1 w-20"
+                            />
+                          ) : (
+                            <p className="text-gray-400 text-xs">{formatarHora(ponto.created_at)}</p>
+                          )}
+                        </div>
+
                         {editando ? (
-                          <input
-                            type="time"
-                            value={novaHora}
-                            onChange={(e) => setNovaHora(e.target.value)}
-                            className="bg-gray-600 text-white text-xs px-2 py-1 rounded mt-1 w-20"
-                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => salvarEdicao(ponto)}
+                              className="p-1 bg-teal-600 hover:bg-teal-700 rounded transition"
+                            >
+                              <Check size={16} className="text-white" />
+                            </button>
+                            <button
+                              onClick={cancelarEdicao}
+                              className="p-1 bg-gray-600 hover:bg-gray-700 rounded transition"
+                            >
+                              <X size={16} className="text-white" />
+                            </button>
+                          </div>
                         ) : (
-                          <p className="text-gray-400 text-xs">{formatarHora(ponto.created_at)}</p>
+                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                            <button
+                              onClick={() => iniciarEdicao(ponto)}
+                              className="p-1 hover:bg-gray-600 rounded transition"
+                            >
+                              <Edit2 size={16} className="text-gray-400 hover:text-teal-400" />
+                            </button>
+                            <button
+                              onClick={() => setDeletandoId(ponto.id)}
+                              className="p-1 hover:bg-gray-600 rounded transition"
+                            >
+                              <Trash2 size={16} className="text-gray-400 hover:text-red-400" />
+                            </button>
+                          </div>
                         )}
                       </div>
 
-                      {editando ? (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => salvarEdicao(ponto)}
-                            className="p-1 bg-teal-600 hover:bg-teal-700 rounded transition"
-                          >
-                            <Check size={16} className="text-white" />
-                          </button>
-                          <button
-                            onClick={cancelarEdicao}
-                            className="p-1 bg-gray-600 hover:bg-gray-700 rounded transition"
-                          >
-                            <X size={16} className="text-white" />
-                          </button>
+                      {deletandoId === ponto.id && (
+                        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                          <div className="bg-gray-800 rounded-2xl p-6 max-w-sm">
+                            <p className="text-white font-semibold mb-4">Confirmar exclusão?</p>
+                            <p className="text-gray-400 text-sm mb-6">
+                              Tem certeza que deseja deletar este ponto? Esta ação não pode ser desfeita.
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => confirmarDelecao(ponto.id)}
+                                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-semibold transition"
+                              >
+                                Deletar
+                              </button>
+                              <button
+                                onClick={() => setDeletandoId(null)}
+                                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg font-semibold transition"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                      ) : (
-                        <button
-                          onClick={() => iniciarEdicao(ponto)}
-                          className="p-1 hover:bg-gray-600 rounded transition"
-                        >
-                          <Edit2 size={16} className="text-gray-400 hover:text-teal-400" />
-                        </button>
                       )}
                     </div>
                   )
