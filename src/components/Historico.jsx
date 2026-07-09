@@ -333,18 +333,18 @@ export function Historico() {
                             </button>
                           </div>
                         ) : (
-                          <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition">
+                          <div className="flex gap-2">
                             <button
                               onClick={() => iniciarEdicao(ponto)}
                               className="p-1 hover:bg-gray-600 rounded transition"
                             >
-                              <Edit2 size={16} className="text-gray-400 hover:text-teal-400" />
+                              <Edit2 size={16} className="text-teal-400" />
                             </button>
                             <button
                               onClick={() => setDeletandoId(ponto.id)}
                               className="p-1 hover:bg-gray-600 rounded transition"
                             >
-                              <Trash2 size={16} className="text-gray-400 hover:text-red-400" />
+                              <Trash2 size={16} className="text-red-400" />
                             </button>
                           </div>
                         )}
