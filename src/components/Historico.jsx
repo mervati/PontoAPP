@@ -4,6 +4,7 @@ import { PontoContext } from '../contexts/PontoContext'
 import { AuthContext } from '../contexts/AuthContext'
 import { supabase } from '../utils/supabase'
 import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 export function Historico() {
   const { user } = useContext(AuthContext)
@@ -326,30 +327,20 @@ export function Historico() {
     doc.text('8:00', 60, 31)
     doc.text(`BANCO DE HORAS ACUMULADO: ${bancoAnterior}`, 100, 25)
 
-    // Tabela
-    const headers = ['Data', 'Dia', 'Ent 1', 'Saí 1', 'Ent 2', 'Saí 2', 'Ent 3', 'Saí 3', 'Total', 'Meta', 'Saldo']
-    const colWidths = [22, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]
-    let y = 42
-    const marginLeft = 7
-
-    // Cabeçalho com melhor destaque
-    doc.setFillColor(25, 118, 118)
-    doc.setTextColor(255, 255, 255)
-    doc.setFont(undefined, 'bold')
-    doc.setFontSize(7)
-
-    let x = marginLeft
-    headers.forEach((header, i) => {
-      doc.rect(x, y, colWidths[i], 7, 'F')
-      doc.text(header, x + colWidths[i] / 2, y + 4.5, { align: 'center', maxWidth: colWidths[i] - 1 })
-      x += colWidths[i]
-    })
-
-    // Linha separadora
-    doc.setDrawColor(25, 118, 118)
-    doc.setLineWidth(0.3)
-    doc.line(marginLeft, y + 7, marginLeft + colWidths.reduce((a, b) => a + b), y + 7)
-    y += 1
+    // Cabeçalhos da tabela
+    const headers = [
+      'Data',
+      'Dia da Semana',
+      'Entrada 1',
+      'Saída 1',
+      'Entrada 2',
+      'Saída 2',
+      'Entrada 3',
+      'Saída 3',
+      'Total',
+      'Meta',
+      'Saldo',
+    ]
 
     // Dados
     const pontosDoMes = pontos.filter(p => {
@@ -366,34 +357,24 @@ export function Historico() {
       pontosPorDia[data].push(ponto)
     })
 
-    doc.setTextColor(0, 0, 0)
-    doc.setFont(undefined, 'normal')
-    doc.setFontSize(9)
-    y += 7
-
     const tableData = []
     let totalHorasMs = 0
 
     Object.entries(pontosPorDia).forEach(([data, diasPontos]) => {
       const dataObj = new Date(diasPontos[0].created_at)
-      const diaSemana = dataObj.toLocaleDateString('pt-BR', { weekday: 'short' })
+      const diaSemana = dataObj.toLocaleDateString('pt-BR', { weekday: 'long' })
 
       const diaFeriado = diasFeriados.find(d => d.data === data)
 
       if (diaFeriado) {
-        // Se é feriado ou férias, mostrar diferente
+        // Se é feriado ou férias, mostrar diferente (célula mesclada)
         const tipo = diaFeriado.tipo === 'feriado' ? 'FERIADO' : 'FÉRIAS'
         const justificativa = diaFeriado.justificativa ? ` - ${diaFeriado.justificativa}` : ''
 
         tableData.push([
           data,
           diaSemana,
-          `${tipo}${justificativa}`,
-          '',
-          '',
-          '',
-          '',
-          '',
+          { content: `${tipo}${justificativa}`, colSpan: 6, styles: { halign: 'center', fontStyle: 'italic' } },
           '-',
           '-',
           '-',
@@ -415,21 +396,17 @@ export function Historico() {
 
         let totalTrabalhaoMs = 0
         if (entrada1 && saida1) {
-          let tempo = new Date(saida1.created_at) - new Date(entrada1.created_at)
-          totalTrabalhaoMs += tempo
+          totalTrabalhaoMs += new Date(saida1.created_at) - new Date(entrada1.created_at)
         }
         if (entrada2 && saida2) {
-          let tempo = new Date(saida2.created_at) - new Date(entrada2.created_at)
-          totalTrabalhaoMs += tempo
+          totalTrabalhaoMs += new Date(saida2.created_at) - new Date(entrada2.created_at)
         }
         if (entrada3 && saida3) {
-          let tempo = new Date(saida3.created_at) - new Date(entrada3.created_at)
-          totalTrabalhaoMs += tempo
+          totalTrabalhaoMs += new Date(saida3.created_at) - new Date(entrada3.created_at)
         }
 
         const horas = Math.floor(totalTrabalhaoMs / (60 * 60 * 1000))
         const minutos = Math.floor((totalTrabalhaoMs % (60 * 60 * 1000)) / (60 * 1000))
-        const totalTrabalhado = horas + minutos / 60
 
         const tempoEsperadoMs = 8 * 60 * 60 * 1000
         const saldoMs = totalTrabalhaoMs - tempoEsperadoMs
@@ -455,44 +432,7 @@ export function Historico() {
       }
     })
 
-    // Desenhar dados
-    tableData.forEach((row, idx) => {
-      if (y > 270) {
-        doc.addPage()
-        y = 10
-      }
-
-      x = marginLeft
-      if (idx % 2 === 0) {
-        doc.setFillColor(245, 245, 245)
-        doc.rect(x, y, colWidths.reduce((a, b) => a + b), 6, 'F')
-      }
-
-      doc.setDrawColor(200, 200, 200)
-      doc.rect(x, y, colWidths.reduce((a, b) => a + b), 6)
-
-      row.forEach((cell, i) => {
-        doc.text(String(cell), x + colWidths[i] / 2, y + 4, { align: 'center' })
-        x += colWidths[i]
-      })
-
-      y += 6
-    })
-
-    // Total
-    y += 3
-    doc.setFont(undefined, 'bold')
-    x = marginLeft
-
-    // Calcular posições das colunas baseado em colWidths
-    const totalColWidth = colWidths.reduce((a, b) => a + b, 0)
-    const colPositions = []
-    let pos = marginLeft
-    colWidths.forEach(w => {
-      colPositions.push(pos + w / 2)
-      pos += w
-    })
-
+    // Linha de total do mês (rodapé)
     const totalHoras = Math.floor(totalHorasMs / (60 * 60 * 1000))
     const totalMinutos = Math.floor((totalHorasMs % (60 * 60 * 1000)) / (60 * 1000))
     const metaHoras = 160
@@ -501,10 +441,28 @@ export function Historico() {
     const saldoTotalMinutos = Math.floor((Math.abs(saldoTotalMs) % (60 * 60 * 1000)) / (60 * 1000))
     const saldoTotalNegativo = saldoTotalMs < 0
 
-    doc.text('Total do Mês', colPositions[0], y)
-    doc.text(`${String(totalHoras).padStart(2, '0')}:${String(totalMinutos).padStart(2, '0')}`, colPositions[8], y)
-    doc.text('160:00', colPositions[9], y)
-    doc.text(`${saldoTotalNegativo ? '-' : '+'}${String(saldoTotalHoras).padStart(2, '0')}:${String(saldoTotalMinutos).padStart(2, '0')}`, colPositions[10], y)
+    const footRow = [
+      { content: 'Total do Mês', colSpan: 8, styles: { halign: 'right' } },
+      `${String(totalHoras).padStart(2, '0')}:${String(totalMinutos).padStart(2, '0')}`,
+      '160:00',
+      `${saldoTotalNegativo ? '-' : '+'}${String(saldoTotalHoras).padStart(2, '0')}:${String(saldoTotalMinutos).padStart(2, '0')}`,
+    ]
+
+    // Gerar tabela com jspdf-autotable
+    autoTable(doc, {
+      startY: 38,
+      head: [headers],
+      body: tableData,
+      foot: [footRow],
+      theme: 'grid',
+      styles: { fontSize: 8, halign: 'center', valign: 'middle', cellPadding: 1.5 },
+      headStyles: { fillColor: [25, 118, 118], textColor: 255, fontStyle: 'bold', halign: 'center' },
+      bodyStyles: { textColor: 20 },
+      footStyles: { fillColor: [235, 235, 235], textColor: 0, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      columnStyles: { 0: { halign: 'left' }, 1: { halign: 'left' } },
+      margin: { left: 8, right: 8 },
+    })
 
     const nomeArquivo = `Controle de Ponto - ${mes}.pdf`
     doc.save(nomeArquivo)
