@@ -20,6 +20,7 @@ export function Historico() {
   const [tipoFeriado, setTipoFeriado] = useState('feriado')
   const [justificativa, setJustificativa] = useState('')
   const [tempoAtual, setTempoAtual] = useState(new Date())
+  const [mesCalendario, setMesCalendario] = useState(new Date())
 
   useEffect(() => {
     if (user) {
@@ -256,6 +257,44 @@ export function Historico() {
     const data = new Date(partes[2], partes[1] - 1, partes[0])
     const dia = data.getDay()
     return dia === 0 || dia === 6 // 0 = domingo, 6 = sábado
+  }
+
+  const gerarDiasCalendario = () => {
+    const ano = mesCalendario.getFullYear()
+    const mes = mesCalendario.getMonth()
+    const primeiroDia = new Date(ano, mes, 1)
+    const ultimoDia = new Date(ano, mes + 1, 0)
+    const diasMes = ultimoDia.getDate()
+    const comecaEm = primeiroDia.getDay()
+
+    const dias = []
+    for (let i = 0; i < comecaEm; i++) {
+      dias.push(null)
+    }
+    for (let i = 1; i <= diasMes; i++) {
+      dias.push(i)
+    }
+    return dias
+  }
+
+  const getStatusDia = (dia) => {
+    const dataStr = `${String(dia).padStart(2, '0')}/${String(mesCalendario.getMonth() + 1).padStart(2, '0')}/${mesCalendario.getFullYear()}`
+
+    if (isDiaFeriado(dataStr)) return 'feriado'
+
+    const temPontos = pontosPorDia[dataStr]
+    if (!temPontos) return null
+
+    const tiposEsperados = ['ponto_1_entrada', 'ponto_1_saida', 'ponto_2_entrada', 'ponto_2_saida']
+    const tiposExistentes = temPontos.map(p => p.tipo)
+    const temEntrada1 = tiposExistentes.includes('ponto_1_entrada') || tiposExistentes.includes('entrada_trabalho')
+    const temSaida1 = tiposExistentes.includes('ponto_1_saida') || tiposExistentes.includes('saida_trabalho')
+    const temEntrada2 = tiposExistentes.includes('ponto_2_entrada')
+    const temSaida2 = tiposExistentes.includes('ponto_2_saida')
+
+    if (temEntrada1 && temSaida1 && temEntrada2 && temSaida2) return 'completo'
+    if (temEntrada1 || temSaida1 || temEntrada2 || temSaida2) return 'incompleto'
+    return null
   }
 
   const salvarNovoPonto = async () => {
@@ -529,6 +568,64 @@ export function Historico() {
       </div>
 
       <div className="px-3 pt-4 space-y-3">
+        {/* Mini Calendário */}
+        <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-2xl p-4 backdrop-blur-xl shadow-lg">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => setMesCalendario(new Date(mesCalendario.getFullYear(), mesCalendario.getMonth() - 1))}
+              className="text-teal-400 hover:text-teal-300 font-bold text-lg"
+            >
+              ←
+            </button>
+            <p className="text-white font-bold">
+              {mesCalendario.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+            </p>
+            <button
+              onClick={() => setMesCalendario(new Date(mesCalendario.getFullYear(), mesCalendario.getMonth() + 1))}
+              className="text-teal-400 hover:text-teal-300 font-bold text-lg"
+            >
+              →
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 text-xs text-center">
+            {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'].map(dia => (
+              <div key={dia} className="text-gray-400 font-bold py-1">{dia}</div>
+            ))}
+            {gerarDiasCalendario().map((dia, idx) => {
+              const status = dia ? getStatusDia(dia) : null
+              let bgColor = 'bg-transparent'
+              if (status === 'completo') bgColor = 'bg-green-500/30 border border-green-500/50'
+              if (status === 'feriado') bgColor = 'bg-yellow-500/30 border border-yellow-500/50'
+              if (status === 'incompleto') bgColor = 'bg-red-500/30 border border-red-500/50'
+
+              return (
+                <div
+                  key={idx}
+                  className={`py-1 rounded text-white text-xs font-semibold ${bgColor} ${dia ? 'cursor-pointer hover:opacity-80' : ''}`}
+                >
+                  {dia}
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="flex gap-3 mt-3 text-xs">
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded bg-green-500/30 border border-green-500/50"></div>
+              <span className="text-gray-400">Completo</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded bg-red-500/30 border border-red-500/50"></div>
+              <span className="text-gray-400">Incompleto</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 rounded bg-yellow-500/30 border border-yellow-500/50"></div>
+              <span className="text-gray-400">Feriado</span>
+            </div>
+          </div>
+        </div>
+
         {Object.entries(pontosPorDia).map(([data, diasPontos]) => {
           const tempoTotal = calcularDia(diasPontos)
           const tiposFaltantes = getTiposFaltantes(diasPontos)
