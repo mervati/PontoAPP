@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from 'react'
-import { Clock, LogIn, LogOut } from 'lucide-react'
+import { Clock, LogIn, LogOut, Eye, EyeOff } from 'lucide-react'
 import { AuthContext } from '../contexts/AuthContext'
 import { PontoContext } from '../contexts/PontoContext'
 import { supabase } from '../utils/supabase'
@@ -8,6 +8,10 @@ export function Dashboard() {
   const { user } = useContext(AuthContext)
   const { ultimoPonto, registrarPonto, fetchPontos, calcularBancoHoras, pontos } = useContext(PontoContext)
   const [bancoInicial, setBancoInicial] = useState(null)
+  const [mostrarResultadoDia, setMostrarResultadoDia] = useState(() => {
+    const salvo = localStorage.getItem('mostrarResultadoDia')
+    return salvo ? JSON.parse(salvo) : false
+  })
 
   useEffect(() => {
     if (user) {
@@ -30,6 +34,12 @@ export function Dashboard() {
     } catch (error) {
       console.error('Erro ao buscar banco inicial:', error)
     }
+  }
+
+  const toggleMostrarResultadoDia = () => {
+    const novoValor = !mostrarResultadoDia
+    setMostrarResultadoDia(novoValor)
+    localStorage.setItem('mostrarResultadoDia', JSON.stringify(novoValor))
   }
 
   const tiposSequencia = [
@@ -254,7 +264,17 @@ export function Dashboard() {
         )}
 
         <div className="mt-6">
-          <p className="text-gray-300 text-xs font-bold uppercase tracking-widest mb-2 px-1">📊 Resultado do Dia</p>
+          <div className="flex items-center justify-between px-1 mb-2">
+            <p className="text-gray-300 text-xs font-bold uppercase tracking-widest">📊 Resultado do Dia</p>
+            <button
+              onClick={toggleMostrarResultadoDia}
+              className="text-gray-400 hover:text-teal-400 transition p-1"
+            >
+              {mostrarResultadoDia ? <Eye size={16} /> : <EyeOff size={16} />}
+            </button>
+          </div>
+
+          {mostrarResultadoDia && (
           <div className={`rounded-2xl p-3 border backdrop-blur-xl shadow-xl transition-all ${
             resultadoDia.negativo
               ? 'bg-gradient-to-br from-red-500/20 to-rose-500/10 border-red-500/40'
@@ -272,6 +292,7 @@ export function Dashboard() {
             </p>
             <p className="text-gray-400 text-xs">Horas trabalhadas − 8 horas esperadas</p>
           </div>
+          )}
         </div>
 
         <div className={`group rounded-2xl p-3 border backdrop-blur-xl shadow-xl transition-all mt-3 ${
@@ -284,7 +305,7 @@ export function Dashboard() {
               <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${
                 bancoInicial?.negativo ? 'text-red-300/80' : 'text-purple-300/80'
               }`}>
-                💰 Saldo Anterior
+                💰 Banco de Horas
               </p>
               <p className={`text-3xl font-black font-mono ${
                 bancoInicial?.negativo ? 'text-red-400' : 'text-purple-300'
