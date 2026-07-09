@@ -141,6 +141,73 @@ export function Relatorio() {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
   }
 
+  const calcularEstatisticas = () => {
+    if (pontos.length === 0) return null
+
+    const pontosPorDia = {}
+    pontos.forEach((ponto) => {
+      const data = new Date(ponto.created_at).toLocaleDateString('pt-BR')
+      if (!pontosPorDia[data]) {
+        pontosPorDia[data] = []
+      }
+      pontosPorDia[data].push(ponto)
+    })
+
+    const horasPorDia = {}
+    Object.entries(pontosPorDia).forEach(([data, diasPontos]) => {
+      const pares = [
+        { entrada: 'ponto_1_entrada', saida: 'ponto_1_saida', entradaAntiga: 'entrada_trabalho', saidaAntiga: 'saida_trabalho' },
+        { entrada: 'ponto_2_entrada', saida: 'ponto_2_saida' },
+        { entrada: 'ponto_3_entrada', saida: 'ponto_3_saida' },
+      ]
+
+      let tempoTrabalho = 0
+      pares.forEach((par) => {
+        let entrada = diasPontos.find(p => p.tipo === par.entrada)
+        let saida = diasPontos.find(p => p.tipo === par.saida)
+
+        if (!entrada && par.entradaAntiga) {
+          entrada = diasPontos.find(p => p.tipo === par.entradaAntiga)
+        }
+        if (!saida && par.saidaAntiga) {
+          saida = diasPontos.find(p => p.tipo === par.saidaAntiga)
+        }
+
+        if (entrada && saida) {
+          const tempo = new Date(saida.created_at) - new Date(entrada.created_at)
+          tempoTrabalho += tempo
+        }
+      })
+
+      const horas = Math.floor(tempoTrabalho / (60 * 60 * 1000))
+      const minutos = Math.floor((tempoTrabalho % (60 * 60 * 1000)) / (60 * 1000))
+      horasPorDia[data] = { horas, minutos, total: tempoTrabalho }
+    })
+
+    const diasOrdenados = Object.entries(horasPorDia).sort((a, b) => b[1].total - a[1].total)
+    const diaComMais = diasOrdenados[0]
+    const diaComMenos = diasOrdenados[diasOrdenados.length - 1]
+
+    const totalMs = Object.values(horasPorDia).reduce((sum, h) => sum + h.total, 0)
+    const totalHoras = Math.floor(totalMs / (60 * 60 * 1000))
+    const totalMinutos = Math.floor((totalMs % (60 * 60 * 1000)) / (60 * 1000))
+
+    const mediaHoras = totalHoras / diasOrdenados.length
+    const mediaMinutos = totalMinutos / diasOrdenados.length
+
+    return {
+      diaComMais,
+      diaComMenos,
+      totalHoras,
+      totalMinutos,
+      mediaHoras: Math.floor(mediaHoras),
+      mediaMinutos: Math.floor(mediaMinutos),
+      diasTrabalhados: diasOrdenados.length,
+    }
+  }
+
+  const stats = calcularEstatisticas()
+
   return (
     <div className="pb-24 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 min-h-screen">
       <div className="bg-gradient-to-r from-teal-600 via-cyan-500 to-blue-600 text-white p-4 relative overflow-hidden">
@@ -181,6 +248,38 @@ export function Relatorio() {
             Semana
           </button>
         </div>
+
+        {/* Estatísticas */}
+        {stats && (
+          <div className="bg-gradient-to-br from-teal-500/20 via-cyan-500/15 to-blue-500/20 border border-teal-500/40 rounded-2xl p-4 backdrop-blur-xl shadow-lg">
+            <p className="text-teal-200 text-xs font-bold uppercase tracking-widest mb-3">📈 Estatísticas Gerais</p>
+
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-teal-500/20">
+                <p className="text-gray-400 text-xs mb-1">Total Trabalhado</p>
+                <p className="text-teal-400 font-mono font-bold text-sm">{formatarHoras(stats.totalHoras, stats.totalMinutos)}</p>
+                <p className="text-gray-500 text-xs mt-1">{stats.diasTrabalhados} dia(s)</p>
+              </div>
+
+              <div className="bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-teal-500/20">
+                <p className="text-gray-400 text-xs mb-1">Média Diária</p>
+                <p className="text-cyan-400 font-mono font-bold text-sm">{formatarHoras(stats.mediaHoras, stats.mediaMinutos)}</p>
+              </div>
+
+              <div className="bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-green-500/20">
+                <p className="text-gray-400 text-xs mb-1">🏆 Dia com Mais Horas</p>
+                <p className="text-green-400 font-mono font-bold text-xs">{stats.diaComMais[0]}</p>
+                <p className="text-green-400/70 text-xs">{formatarHoras(stats.diaComMais[1].horas, stats.diaComMais[1].minutos)}</p>
+              </div>
+
+              <div className="bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-orange-500/20">
+                <p className="text-gray-400 text-xs mb-1">📉 Dia com Menos Horas</p>
+                <p className="text-orange-400 font-mono font-bold text-xs">{stats.diaComMenos[0]}</p>
+                <p className="text-orange-400/70 text-xs">{formatarHoras(stats.diaComMenos[1].horas, stats.diaComMenos[1].minutos)}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Lista de períodos */}
         <div className="space-y-3">
