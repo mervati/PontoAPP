@@ -460,7 +460,6 @@ export function Historico() {
       bodyStyles: { textColor: 20 },
       footStyles: { fillColor: [235, 235, 235], textColor: 0, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [245, 245, 245] },
-      columnStyles: { 0: { halign: 'left' }, 1: { halign: 'left' } },
       margin: { left: 8, right: 8 },
     })
 
