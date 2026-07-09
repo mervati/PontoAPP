@@ -19,6 +19,7 @@ export function Historico() {
   const [marcandoFeriado, setMarcandoFeriado] = useState(null)
   const [tipoFeriado, setTipoFeriado] = useState('feriado')
   const [justificativa, setJustificativa] = useState('')
+  const [tempoAtual, setTempoAtual] = useState(new Date())
 
   useEffect(() => {
     if (user) {
@@ -26,6 +27,13 @@ export function Historico() {
       fetchDiasFeriados()
     }
   }, [user])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTempoAtual(new Date())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   const fetchDiasFeriados = async () => {
     try {
@@ -131,7 +139,6 @@ export function Historico() {
 
     let tempoTrabalho = 0
 
-
     pares.forEach((par) => {
       let entrada = diasPontos.find(p => p.tipo === par.entrada)
       let saida = diasPontos.find(p => p.tipo === par.saida)
@@ -147,6 +154,10 @@ export function Historico() {
       if (entrada && saida) {
         const tempo = new Date(saida.created_at) - new Date(entrada.created_at)
         tempoTrabalho += tempo
+      } else if (entrada && !saida) {
+        // Se há entrada mas sem saída (ainda trabalhando), conta até agora
+        const tempo = tempoAtual - new Date(entrada.created_at)
+        tempoTrabalho += tempo
       }
     })
 
@@ -154,7 +165,6 @@ export function Historico() {
 
     const horas = Math.floor(tempoTrabalho / (60 * 60 * 1000))
     const minutos = Math.floor((tempoTrabalho % (60 * 60 * 1000)) / (60 * 1000))
-
 
     return { horas, minutos }
   }
