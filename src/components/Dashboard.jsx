@@ -132,7 +132,7 @@ export function Dashboard() {
 
     // Se for fim de semana, não calcula banco de horas
     if (ehFinDeSemana(hoje)) {
-      return { horas: 0, minutos: 0, negativo: false }
+      return { horas: 0, minutos: 0, segundos: 0, negativo: false }
     }
 
     const hojePontos = pontos.filter(p => {
@@ -171,19 +171,21 @@ export function Dashboard() {
     const tempoEsperado = 8 * 60 * 60 * 1000
     const diffMs = tempoTrabalho - tempoEsperado
 
-    const horas = Math.floor(Math.abs(diffMs) / (60 * 60 * 1000))
-    const minutos = Math.floor((Math.abs(diffMs) % (60 * 60 * 1000)) / (60 * 1000))
+    const absDiffMs = Math.abs(diffMs)
+    const horas = Math.floor(absDiffMs / (60 * 60 * 1000))
+    const minutos = Math.floor((absDiffMs % (60 * 60 * 1000)) / (60 * 1000))
+    const segundos = Math.floor((absDiffMs % (60 * 1000)) / 1000)
     const negativo = diffMs < 0
 
-    return { horas, minutos, negativo }
+    return { horas, minutos, segundos, negativo }
   }
 
   const resultadoDia = calcularResultadoDia()
 
 
-  const formatarHoras = (h, m, neg) => {
+  const formatarHoras = (h, m, s, neg) => {
     const sinal = neg ? '-' : '+'
-    return `${sinal}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+    return `${sinal}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s || 0).padStart(2, '0')}`
   }
 
   const formatarHora = (isoString) => {
@@ -301,7 +303,7 @@ export function Dashboard() {
             <p className={`text-3xl font-black font-mono mb-1 ${
               resultadoDia.negativo ? 'text-red-400' : 'text-green-400'
             }`}>
-              {formatarHoras(resultadoDia.horas, resultadoDia.minutos, resultadoDia.negativo)}
+              {formatarHoras(resultadoDia.horas, resultadoDia.minutos, resultadoDia.segundos, resultadoDia.negativo)}
             </p>
             <p className="text-gray-400 text-xs mt-2">Horas trabalhadas − 8 horas esperadas</p>
           </div>
@@ -323,7 +325,7 @@ export function Dashboard() {
               <p className={`text-3xl font-black font-mono ${
                 bancoInicial?.negativo ? 'text-red-400' : 'text-purple-300'
               }`}>
-                {formatarHoras(bancoInicial?.horas || 0, bancoInicial?.minutos || 0, bancoInicial?.negativo || false)}
+                {formatarHoras(bancoInicial?.horas || 0, bancoInicial?.minutos || 0, 0, bancoInicial?.negativo || false)}
               </p>
               <p className="text-gray-400 text-xs mt-1">Atualiza no próximo dia</p>
             </div>

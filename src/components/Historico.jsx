@@ -165,8 +165,9 @@ export function Historico() {
 
     const horas = Math.floor(tempoTrabalho / (60 * 60 * 1000))
     const minutos = Math.floor((tempoTrabalho % (60 * 60 * 1000)) / (60 * 1000))
+    const segundos = Math.floor((tempoTrabalho % (60 * 1000)) / 1000)
 
-    return { horas, minutos }
+    return { horas, minutos, segundos }
   }
 
   const formatarHora = (isoString) => {
@@ -528,7 +529,7 @@ export function Historico() {
                 <div className="flex items-center gap-3">
                   {tempoTotal && (
                     <p className="text-teal-400 font-mono text-sm">
-                      {String(tempoTotal.horas).padStart(2, '0')}:{String(tempoTotal.minutos).padStart(2, '0')}h
+                      {String(tempoTotal.horas).padStart(2, '0')}:{String(tempoTotal.minutos).padStart(2, '0')}:{String(tempoTotal.segundos).padStart(2, '0')}h
                     </p>
                   )}
                   {tiposFaltantes.length > 0 && ehDiaAnterior && !ehFinDeSemana(data) && !isDiaFeriado(data) && (
