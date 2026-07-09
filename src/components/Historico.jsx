@@ -3,8 +3,7 @@ import { Clock, Coffee, LogOut, LogIn, Edit2, Check, X, Download } from 'lucide-
 import { PontoContext } from '../contexts/PontoContext'
 import { AuthContext } from '../contexts/AuthContext'
 import { supabase } from '../utils/supabase'
-import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+import { jsPDF } from 'jspdf'
 
 export function Historico() {
   const { user } = useContext(AuthContext)
@@ -109,7 +108,6 @@ export function Historico() {
     const doc = new jsPDF('p', 'mm', 'a4')
     const agora = new Date()
     const mes = agora.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
-    const mesAno = `${String(agora.getMonth() + 1).padStart(2, '0')}/${agora.getFullYear()}`
 
     // Título
     doc.setFontSize(14)
@@ -119,17 +117,30 @@ export function Historico() {
     // Info do banco
     doc.setFontSize(10)
     doc.setFont(undefined, 'normal')
-    doc.text('Banco de Horas Anterior:', 15, 25)
-    doc.text('Jornada Diária Contratual:', 15, 32)
-    doc.text('BANCO DE HORAS ACUMULADO:', 100, 25)
-
+    doc.text('Banco de Horas Anterior: 2:46', 15, 25)
+    doc.text('Jornada Diária Contratual: 8:00', 15, 32)
     doc.setFont(undefined, 'bold')
-    doc.text('2:46', 50, 25)
-    doc.text('8:00', 50, 32)
-    doc.text('2:46', 150, 25)
+    doc.text('BANCO DE HORAS ACUMULADO: 2:46', 100, 25)
 
-    // Tabela
-    const tableData = []
+    // Cabeçalho da tabela
+    const headers = ['Data', 'Dia', 'Entrada 1', 'Saída Alm.', 'Entrada Alm.', 'Saída 2', 'Total Trab.', 'Carga Diária', 'Saldo']
+    const colWidths = [18, 22, 18, 18, 18, 18, 18, 18, 18]
+    let y = 45
+
+    // Desenhar cabeçalho
+    doc.setFillColor(25, 118, 118)
+    doc.setTextColor(255, 255, 255)
+    doc.setFont(undefined, 'bold')
+    doc.setFontSize(9)
+
+    let x = 15
+    headers.forEach((header, i) => {
+      doc.rect(x, y - 5, colWidths[i], 7, 'F')
+      doc.text(header, x + colWidths[i] / 2, y, { align: 'center' })
+      x += colWidths[i]
+    })
+
+    // Dados da tabela
     const pontosDoMes = pontos.filter(p => {
       const data = new Date(p.created_at)
       return data.getMonth() === agora.getMonth() && data.getFullYear() === agora.getFullYear()
@@ -144,19 +155,24 @@ export function Historico() {
       pontosPorDia[data].push(ponto)
     })
 
+    doc.setTextColor(0, 0, 0)
+    doc.setFont(undefined, 'normal')
+    doc.setFontSize(8)
+    y += 7
+
+    const tableData = []
+    let totalHoras = 0
+
     Object.entries(pontosPorDia).forEach(([data, diasPontos]) => {
       const dataObj = new Date(diasPontos[0].created_at)
-      const diaSemana = dataObj.toLocaleDateString('pt-BR', { weekday: 'long' })
+      const diaSemana = dataObj.toLocaleDateString('pt-BR', { weekday: 'short' })
 
       const entrada1 = diasPontos.find(p => p.tipo === 'entrada_trabalho')
       const saidaAlmoco = diasPontos.find(p => p.tipo === 'saida_almoco')
       const entradaAlmoco = diasPontos.find(p => p.tipo === 'entrada_almoco')
       const saida2 = diasPontos.find(p => p.tipo === 'saida_trabalho')
 
-      const formatarHora = (iso) => {
-        if (!iso) return '-'
-        return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-      }
+      const formatarHora = (iso) => (iso ? new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '-')
 
       let totalTrabalhado = 0
       if (entrada1 && saida2) {
@@ -168,8 +184,8 @@ export function Historico() {
         totalTrabalhado = Math.floor(tempo / (60 * 60 * 1000))
       }
 
-      const cargaDiaria = 8
-      const saldoDia = totalTrabalhado - cargaDiaria
+      const saldoDia = totalTrabalhado - 8
+      totalHoras += totalTrabalhado
 
       tableData.push([
         data,
@@ -184,38 +200,32 @@ export function Historico() {
       ])
     })
 
-    doc.autoTable({
-      startY: 45,
-      head: [['Data', 'Dia da Semana', 'Entrada 1', 'Saída Almoço', 'Entrada Almoço', 'Saída 2', 'Total Trabalhado', 'Carga Diária', 'Saldo do Dia']],
-      body: tableData,
-      headStyles: { fillColor: [25, 118, 118], textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [240, 240, 240] },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 18 },
-        1: { halign: 'center', cellWidth: 25 },
-        2: { halign: 'center', cellWidth: 18 },
-        3: { halign: 'center', cellWidth: 22 },
-        4: { halign: 'center', cellWidth: 22 },
-        5: { halign: 'center', cellWidth: 18 },
-        6: { halign: 'center', cellWidth: 20 },
-        7: { halign: 'center', cellWidth: 18 },
-        8: { halign: 'center', cellWidth: 18 },
-      },
-      margin: { left: 10, right: 10 },
+    // Desenhar linhas
+    tableData.forEach((row, idx) => {
+      if (y > 270) {
+        doc.addPage()
+        y = 20
+      }
+
+      x = 15
+      doc.setFillColor(idx % 2 === 0 ? 255 : 240, idx % 2 === 0 ? 255 : 240, idx % 2 === 0 ? 255 : 240)
+
+      row.forEach((cell, i) => {
+        doc.rect(x, y, colWidths[i], 6, 'F')
+        doc.text(String(cell), x + colWidths[i] / 2, y + 4, { align: 'center' })
+        x += colWidths[i]
+      })
+
+      y += 6
     })
 
     // Total do mês
-    const totalHoras = tableData.reduce((sum, row) => {
-      const horas = parseInt(row[6])
-      return sum + (isNaN(horas) ? 0 : horas)
-    }, 0)
-
-    const finalY = doc.lastAutoTable.finalY + 10
+    y += 5
     doc.setFont(undefined, 'bold')
-    doc.text('Total do Mês', 15, finalY)
-    doc.text(`${String(totalHoras).padStart(2, '0')}:00`, 80, finalY)
-    doc.text('160:00', 110, finalY)
-    doc.text(`${totalHoras >= 160 ? '+' : ''}${String(totalHoras - 160).padStart(2, '0')}:00`, 150, finalY)
+    doc.text('Total do Mês', 15, y)
+    doc.text(`${String(totalHoras).padStart(2, '0')}:00`, 80, y)
+    doc.text('160:00', 110, y)
+    doc.text(`${totalHoras >= 160 ? '+' : ''}${String(totalHoras - 160).padStart(2, '0')}:00`, 150, y)
 
     // Download
     const nomeArquivo = `Controle de Ponto - ${mes}.pdf`
