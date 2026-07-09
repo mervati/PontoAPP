@@ -126,35 +126,40 @@ export function Relatorio() {
   }
 
   const agruparPorPeriodo = useMemo(() => {
-    if (!diaSelecionadoInicio || !diaSelecionadoFim) {
-      return agruparPorMes()
+    // Se tem seleção (início ou período completo)
+    if (diaSelecionadoInicio) {
+      const [diaI, mesI, anoI] = diaSelecionadoInicio.split('/').map(Number)
+      const dataInicio = new Date(anoI, mesI - 1, diaI)
+
+      let dataFim = dataInicio
+      if (diaSelecionadoFim) {
+        const [diaF, mesF, anoF] = diaSelecionadoFim.split('/').map(Number)
+        dataFim = new Date(anoF, mesF - 1, diaF)
+      }
+
+      const pontosFiltrados = pontos.filter(p => {
+        const dataPonto = new Date(p.created_at)
+        return dataPonto >= dataInicio && dataPonto <= dataFim
+      })
+
+      const grupos = {}
+      pontosFiltrados.forEach(ponto => {
+        const data = new Date(ponto.created_at).toLocaleDateString('pt-BR')
+        if (!grupos[data]) {
+          grupos[data] = []
+        }
+        grupos[data].push(ponto)
+      })
+
+      return Object.entries(grupos).map(([data, pts]) => ({
+        chave: data,
+        label: data,
+        pontos: pts,
+      }))
     }
 
-    // Filtrar pontos pelo período selecionado
-    const [diaI, mesI, anoI] = diaSelecionadoInicio.split('/').map(Number)
-    const [diaF, mesF, anoF] = diaSelecionadoFim.split('/').map(Number)
-    const dataInicio = new Date(anoI, mesI - 1, diaI)
-    const dataFim = new Date(anoF, mesF - 1, diaF)
-
-    const pontosFiltrados = pontos.filter(p => {
-      const dataPonto = new Date(p.created_at)
-      return dataPonto >= dataInicio && dataPonto <= dataFim
-    })
-
-    const grupos = {}
-    pontosFiltrados.forEach(ponto => {
-      const data = new Date(ponto.created_at).toLocaleDateString('pt-BR')
-      if (!grupos[data]) {
-        grupos[data] = []
-      }
-      grupos[data].push(ponto)
-    })
-
-    return Object.entries(grupos).map(([data, pts]) => ({
-      chave: data,
-      label: data,
-      pontos: pts,
-    }))
+    // Se não tem seleção, mostra tudo agrupado por mês
+    return agruparPorMes()
   }, [pontos, diaSelecionadoInicio, diaSelecionadoFim])
 
   const calcularHoras = (diasPontos) => {
