@@ -33,12 +33,12 @@ export function Dashboard() {
   }
 
   const tiposSequencia = [
-    { label: 'Entrada', tipo: 'entrada_trabalho', icon: LogIn, cor: 'text-green-400' },
-    { label: 'Saída', tipo: 'saida_trabalho', icon: LogOut, cor: 'text-red-400' },
-    { label: 'Entrada', tipo: 'entrada_almoco', icon: LogIn, cor: 'text-green-400' },
-    { label: 'Saída', tipo: 'saida_almoco', icon: LogOut, cor: 'text-red-400' },
-    { label: 'Entrada', tipo: 'entrada_trabalho', icon: LogIn, cor: 'text-green-400' },
-    { label: 'Saída', tipo: 'saida_trabalho', icon: LogOut, cor: 'text-red-400' },
+    { label: 'Entrada', tipo: 'ponto_1_entrada', icon: LogIn, cor: 'text-green-400' },
+    { label: 'Saída', tipo: 'ponto_1_saida', icon: LogOut, cor: 'text-red-400' },
+    { label: 'Entrada', tipo: 'ponto_2_entrada', icon: LogIn, cor: 'text-green-400' },
+    { label: 'Saída', tipo: 'ponto_2_saida', icon: LogOut, cor: 'text-red-400' },
+    { label: 'Entrada', tipo: 'ponto_3_entrada', icon: LogIn, cor: 'text-green-400' },
+    { label: 'Saída', tipo: 'ponto_3_saida', icon: LogOut, cor: 'text-red-400' },
   ]
 
   const getProximoPonto = () => {
