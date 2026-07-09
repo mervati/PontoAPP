@@ -115,15 +115,24 @@ export function Historico() {
     doc.text(`CONTROLE DE PONTO - ${mes.toUpperCase()}`, 15, 15)
 
     // Info do banco
+    const formatarBanco = (h, m, neg) => {
+      const sinal = neg ? '-' : '+'
+      return `${sinal}${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
+    }
+
+    const bancoAnterior = bancoInicial
+      ? formatarBanco(bancoInicial.horas, bancoInicial.minutos, bancoInicial.negativo)
+      : '+00:00'
+
     doc.setFontSize(9)
     doc.setFont(undefined, 'normal')
     doc.text('Banco de Horas Anterior:', 15, 25)
     doc.text('Jornada Diária Contratual:', 15, 31)
 
     doc.setFont(undefined, 'bold')
-    doc.text('2:46', 60, 25)
+    doc.text(bancoAnterior, 60, 25)
     doc.text('8:00', 60, 31)
-    doc.text('BANCO DE HORAS ACUMULADO: 2:46', 100, 25)
+    doc.text(`BANCO DE HORAS ACUMULADO: ${bancoAnterior}`, 100, 25)
 
     // Tabela
     const headers = ['Data', 'Dia', 'Entrada 1', 'Saída Alm.', 'Entrada Alm.', 'Saída 2', 'Total Trab.', 'Carga', 'Saldo']
