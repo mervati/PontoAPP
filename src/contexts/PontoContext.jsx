@@ -30,9 +30,9 @@ export function PontoProvider({ children }) {
     }
   }, [])
 
-  const registrarPonto = useCallback(async (userId, tipo) => {
+  const registrarPonto = useCallback(async (userId, tipo, horaCustomizada = null) => {
     try {
-      const agora = new Date()
+      const agora = horaCustomizada ? new Date(horaCustomizada) : new Date()
       const { data, error } = await supabase
         .from('pontos')
         .insert([{

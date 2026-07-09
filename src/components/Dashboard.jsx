@@ -1,13 +1,16 @@
 import { useContext, useEffect, useState } from 'react'
-import { Clock, Coffee, LogOut, LogIn } from 'lucide-react'
+import { Clock, Coffee, LogOut, LogIn, Plus } from 'lucide-react'
 import { AuthContext } from '../contexts/AuthContext'
 import { PontoContext } from '../contexts/PontoContext'
 import { supabase } from '../utils/supabase'
+import { RegistrarPontoModal } from './RegistrarPontoModal'
 
 export function Dashboard() {
   const { user } = useContext(AuthContext)
   const { ultimoPonto, registrarPonto, fetchPontos, calcularBancoHoras, pontos } = useContext(PontoContext)
   const [bancoInicial, setBancoInicial] = useState(null)
+  const [abrirModal, setAbrirModal] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -37,6 +40,18 @@ export function Dashboard() {
       await registrarPonto(user.id, tipo)
     } catch (error) {
       alert('Erro ao registrar ponto: ' + error.message)
+    }
+  }
+
+  const handleRegistrarPontoManual = async (dados) => {
+    try {
+      setLoading(true)
+      await registrarPonto(user.id, dados.tipo, dados.hora)
+      setAbrirModal(false)
+    } catch (error) {
+      alert('Erro ao registrar ponto: ' + error.message)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -133,6 +148,14 @@ export function Dashboard() {
           </div>
         )}
 
+        <button
+          onClick={() => setAbrirModal(true)}
+          className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 transition"
+        >
+          <Plus size={20} />
+          Registrar Ponto Manual
+        </button>
+
         <div className="grid grid-cols-2 gap-4 mt-6">
           <div className="bg-gray-800 rounded-2xl p-4 text-center">
             <Coffee className="text-orange-400 mx-auto mb-2" size={24} />
@@ -150,6 +173,13 @@ export function Dashboard() {
             </p>
           </div>
         </div>
+
+        <RegistrarPontoModal
+          isOpen={abrirModal}
+          onClose={() => setAbrirModal(false)}
+          onRegistrar={handleRegistrarPontoManual}
+          loading={loading}
+        />
       </div>
     </div>
   )
