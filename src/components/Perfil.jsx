@@ -12,6 +12,13 @@ export function Perfil() {
   const [bancoMinutos, setBancoMinutos] = useState(0)
   const [bancoNegativo, setBancoNegativo] = useState(false)
   const [salvando, setSalvando] = useState(false)
+  const [alarmes, setAlarmes] = useState({
+    habilitado: false,
+    entrada1: '09:00',
+    saida1: '12:30',
+    entrada2: '13:30',
+    saida2: '17:30',
+  })
 
   useEffect(() => {
     if (user) {
@@ -36,10 +43,33 @@ export function Perfil() {
         setBancoMinutos(data.banco_horas_inicial.minutos || 0)
         setBancoNegativo(data.banco_horas_inicial.negativo || false)
       }
+
+      // Carregar alarmes
+      if (data?.alarmes) {
+        setAlarmes(data.alarmes)
+      }
     } catch (error) {
       console.error('Erro ao buscar dados do usuário:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const salvarAlarmes = async () => {
+    try {
+      setSalvando(true)
+      const { error } = await supabase
+        .from('ponto_users')
+        .update({ alarmes })
+        .eq('id', user.id)
+
+      if (error) throw error
+      alert('Alarmes salvos com sucesso!')
+      await fetchUserData()
+    } catch (error) {
+      alert('Erro ao salvar alarmes: ' + error.message)
+    } finally {
+      setSalvando(false)
     }
   }
 
@@ -231,6 +261,76 @@ export function Perfil() {
               <span className="text-gray-400 text-sm">Status</span>
               <span className="text-green-400 text-sm">Ativo</span>
             </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-blue-800/50 to-blue-900/50 border border-blue-700/50 rounded-2xl p-4 space-y-3 backdrop-blur-xl">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-blue-200 font-bold text-sm">📳 Alarmes de Vibração</p>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={alarmes.habilitado}
+                  onChange={(e) => setAlarmes({ ...alarmes, habilitado: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <span className="text-gray-400 text-xs">Habilitado</span>
+              </label>
+            </div>
+
+            {alarmes.habilitado && (
+              <div className="space-y-2 pt-3 border-t border-blue-700/50">
+                <p className="text-gray-400 text-xs mb-3">⏰ 5 minutos antes de cada ponto:</p>
+
+                <div>
+                  <label className="block text-gray-400 text-xs mb-1">Entrada 1</label>
+                  <input
+                    type="time"
+                    value={alarmes.entrada1}
+                    onChange={(e) => setAlarmes({ ...alarmes, entrada1: e.target.value })}
+                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 text-xs mb-1">Saída 1</label>
+                  <input
+                    type="time"
+                    value={alarmes.saida1}
+                    onChange={(e) => setAlarmes({ ...alarmes, saida1: e.target.value })}
+                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 text-xs mb-1">Entrada 2</label>
+                  <input
+                    type="time"
+                    value={alarmes.entrada2}
+                    onChange={(e) => setAlarmes({ ...alarmes, entrada2: e.target.value })}
+                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 text-xs mb-1">Saída 2</label>
+                  <input
+                    type="time"
+                    value={alarmes.saida2}
+                    onChange={(e) => setAlarmes({ ...alarmes, saida2: e.target.value })}
+                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <button
+                  onClick={salvarAlarmes}
+                  disabled={salvando}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition disabled:opacity-60 mt-3"
+                >
+                  <Check size={16} />
+                  {salvando ? 'Salvando...' : 'Salvar Alarmes'}
+                </button>
+              </div>
+            )}
           </div>
 
           <button

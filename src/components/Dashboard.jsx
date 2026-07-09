@@ -13,6 +13,8 @@ export function Dashboard() {
     return salvo ? JSON.parse(salvo) : false
   })
   const [tempoAtual, setTempoAtual] = useState(new Date())
+  const [alarmes, setAlarmes] = useState(null)
+  const [ultimoAlarme, setUltimoAlarme] = useState(null)
 
   useEffect(() => {
     if (user) {
@@ -27,6 +29,62 @@ export function Dashboard() {
     }, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    const fetchAlarmes = async () => {
+      try {
+        const { data } = await supabase
+          .from('ponto_users')
+          .select('alarmes')
+          .eq('id', user.id)
+          .single()
+
+        if (data?.alarmes) {
+          setAlarmes(data.alarmes)
+        }
+      } catch (error) {
+        console.error('Erro ao buscar alarmes:', error)
+      }
+    }
+
+    if (user) {
+      fetchAlarmes()
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (!alarmes?.habilitado) return
+
+    const verificarAlarme = () => {
+      const agora = new Date()
+      const horaAtual = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`
+
+      const horariosAlarme = [
+        { hora: alarmes.entrada1, nome: 'Entrada 1' },
+        { hora: alarmes.saida1, nome: 'Saída 1' },
+        { hora: alarmes.entrada2, nome: 'Entrada 2' },
+        { hora: alarmes.saida2, nome: 'Saída 2' },
+      ]
+
+      horariosAlarme.forEach(({ hora, nome }) => {
+        const [hh, mm] = hora.split(':')
+        const horarioAlarme = new Date()
+        horarioAlarme.setHours(parseInt(hh), parseInt(mm) - 5, 0, 0)
+        const horarioFormatado = `${String(horarioAlarme.getHours()).padStart(2, '0')}:${String(horarioAlarme.getMinutes()).padStart(2, '0')}`
+
+        if (horaAtual === horarioFormatado && ultimoAlarme !== nome) {
+          // Vibrar
+          if (navigator.vibrate) {
+            navigator.vibrate([200, 100, 200])
+          }
+          setUltimoAlarme(nome)
+          setTimeout(() => setUltimoAlarme(null), 60000)
+        }
+      })
+    }
+
+    verificarAlarme()
+  }, [tempoAtual, alarmes, ultimoAlarme])
 
   const fetchBancoInicial = async () => {
     try {
