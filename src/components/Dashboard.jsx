@@ -384,9 +384,9 @@ export function Dashboard() {
           </div>
         </div>
 
-        {bancoInicial?.negativo && tempoFaltando && (
+        {resultadoDia?.negativo && tempoFaltando && (
           <div className="mt-3 bg-gradient-to-br from-red-600/30 to-red-500/20 border border-red-500/50 rounded-2xl p-4 backdrop-blur-xl shadow-xl">
-            <p className="text-red-200 text-xs font-bold uppercase tracking-widest mb-3">⏱️ Tempo para Zerar Débito</p>
+            <p className="text-red-200 text-xs font-bold uppercase tracking-widest mb-3">⏱️ Tempo para Zerar Débito Hoje</p>
             <div className="bg-red-900/40 rounded-xl p-3 text-center border border-red-500/30">
               <p className="text-red-300 text-xs mb-2">Você precisa trabalhar mais:</p>
               <p className="text-red-400 font-mono text-2xl font-black">
