@@ -328,15 +328,15 @@ export function Historico() {
 
     // Tabela
     const headers = ['Data', 'Dia', 'Ent 1', 'Saí 1', 'Ent 2', 'Saí 2', 'Ent 3', 'Saí 3', 'Total', 'Meta', 'Saldo']
-    const colWidths = [16, 10, 10, 10, 10, 10, 10, 10, 11, 11, 11]
+    const colWidths = [20, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12]
     let y = 42
-    const marginLeft = 10
+    const marginLeft = 8
 
     // Cabeçalho
     doc.setFillColor(25, 118, 118)
     doc.setTextColor(255, 255, 255)
     doc.setFont(undefined, 'bold')
-    doc.setFontSize(8)
+    doc.setFontSize(9)
 
     let x = marginLeft
     headers.forEach((header, i) => {
@@ -362,8 +362,8 @@ export function Historico() {
 
     doc.setTextColor(0, 0, 0)
     doc.setFont(undefined, 'normal')
-    doc.setFontSize(8)
-    y += 6
+    doc.setFontSize(9)
+    y += 7
 
     const tableData = []
     let totalHorasMs = 0
@@ -459,18 +459,18 @@ export function Historico() {
       x = marginLeft
       if (idx % 2 === 0) {
         doc.setFillColor(245, 245, 245)
-        doc.rect(x, y, colWidths.reduce((a, b) => a + b), 5, 'F')
+        doc.rect(x, y, colWidths.reduce((a, b) => a + b), 6, 'F')
       }
 
       doc.setDrawColor(200, 200, 200)
-      doc.rect(x, y, colWidths.reduce((a, b) => a + b), 5)
+      doc.rect(x, y, colWidths.reduce((a, b) => a + b), 6)
 
       row.forEach((cell, i) => {
-        doc.text(String(cell), x + colWidths[i] / 2, y + 3.5, { align: 'center' })
+        doc.text(String(cell), x + colWidths[i] / 2, y + 4, { align: 'center' })
         x += colWidths[i]
       })
 
-      y += 5
+      y += 6
     })
 
     // Total
