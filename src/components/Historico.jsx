@@ -328,9 +328,9 @@ export function Historico() {
 
     // Tabela
     const headers = ['Data', 'Dia', 'Ent 1', 'Saí 1', 'Ent 2', 'Saí 2', 'Ent 3', 'Saí 3', 'Total', 'Meta', 'Saldo']
-    const colWidths = [20, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12]
+    const colWidths = [22, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14]
     let y = 42
-    const marginLeft = 8
+    const marginLeft = 7
 
     // Cabeçalho
     doc.setFillColor(25, 118, 118)
