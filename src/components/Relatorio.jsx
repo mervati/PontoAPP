@@ -221,7 +221,7 @@ export function Relatorio() {
     const horas = Math.floor(totalMs / (60 * 60 * 1000))
     const minutos = Math.floor((totalMs % (60 * 60 * 1000)) / (60 * 1000))
 
-    return { horas, minutos, dias: Object.keys(pontosPorDia).length }
+    return { horas, minutos, dias: Object.keys(pontosPorDia).length, totalMs }
   }
 
   const formatarHoras = (h, m) => {
@@ -402,7 +402,14 @@ export function Relatorio() {
             </div>
           ) : (
             agruparPorPeriodo.map((periodo) => {
-              const { horas, minutos, dias } = calcularHoras(periodo.pontos)
+              const { horas, minutos, dias, totalMs } = calcularHoras(periodo.pontos)
+
+              const metaMs = 8 * dias * 60 * 60 * 1000
+              const diferencaMs = totalMs - metaMs
+              const absDiffMs = Math.abs(diferencaMs)
+              const diffHoras = Math.floor(absDiffMs / (60 * 60 * 1000))
+              const diffMinutos = Math.floor((absDiffMs % (60 * 60 * 1000)) / (60 * 1000))
+              const negativo = diferencaMs < 0
 
               return (
                 <div key={periodo.chave} className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-2xl p-4 backdrop-blur-xl shadow-lg hover:border-slate-600/80 transition-all">
@@ -427,10 +434,10 @@ export function Relatorio() {
                   <div className="bg-gray-700 rounded-full h-2 overflow-hidden">
                     <div
                       className={`h-full transition-all ${
-                        horas >= 8 * dias ? 'bg-green-500' : 'bg-orange-500'
+                        totalMs >= metaMs ? 'bg-green-500' : 'bg-orange-500'
                       }`}
                       style={{
-                        width: `${Math.min(((horas + minutos / 60) / (8 * dias)) * 100, 100)}%`,
+                        width: `${Math.min((totalMs / metaMs) * 100, 100)}%`,
                       }}
                     ></div>
                   </div>
@@ -440,11 +447,11 @@ export function Relatorio() {
                     Meta: {8 * dias}h | Diferença:{' '}
                     <span
                       className={
-                        horas >= 8 * dias ? 'text-green-400' : 'text-orange-400'
+                        totalMs >= metaMs ? 'text-green-400' : 'text-orange-400'
                       }
                     >
-                      {horas >= 8 * dias ? '+' : ''}
-                      {horas - 8 * dias}h{minutos > 0 ? ` ${minutos}m` : ''}
+                      {negativo ? '-' : '+'}
+                      {diffHoras}h{diffMinutos > 0 ? ` ${diffMinutos}m` : ''}
                     </span>
                   </p>
                 </div>
