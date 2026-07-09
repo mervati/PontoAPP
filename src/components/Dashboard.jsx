@@ -133,28 +133,22 @@ export function Dashboard() {
           </div>
         </div>
 
-        {proximo && (
-          <button
-            onClick={() => handleRegistrarPonto(proximo)}
-            className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white py-4 rounded-2xl font-bold text-lg hover:from-teal-600 hover:to-teal-700 transition"
-          >
-            {tiposTexto[proximo]}
-          </button>
-        )}
-
-        {!proximo && (
-          <div className="bg-yellow-900/50 text-yellow-300 p-4 rounded-2xl text-sm">
-            ✓ Todos os pontos do dia foram registrados
-          </div>
-        )}
-
         <button
           onClick={() => setAbrirModal(true)}
-          className="w-full bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-2xl font-semibold flex items-center justify-center gap-2 transition"
+          className={`w-full py-4 rounded-2xl font-bold text-lg transition ${
+            proximo
+              ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white hover:from-teal-600 hover:to-teal-700'
+              : 'bg-gray-700 hover:bg-gray-600 text-white'
+          }`}
         >
-          <Plus size={20} />
-          Registrar Ponto Manual
+          {proximo ? tiposTexto[proximo] : 'Registrar Ponto'}
         </button>
+
+        {!proximo && (
+          <div className="bg-yellow-900/50 text-yellow-300 p-4 rounded-2xl text-sm mt-2">
+            ✓ Todos os pontos padrão do dia foram registrados
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4 mt-6">
           <div className="bg-gray-800 rounded-2xl p-4 text-center">

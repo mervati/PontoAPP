@@ -7,10 +7,8 @@ export function RegistrarPontoModal({ isOpen, onClose, onRegistrar, loading }) {
   const [descricao, setDescricao] = useState('')
 
   const opcoesTipo = [
-    { value: 'entrada_trabalho', label: 'Entrada (Trabalho)' },
-    { value: 'saida_trabalho', label: 'Saída (Trabalho)' },
-    { value: 'entrada_almoco', label: 'Entrada (Almoço)' },
-    { value: 'saida_almoco', label: 'Saída (Almoço)' },
+    { value: 'entrada_trabalho', label: 'Entrada' },
+    { value: 'saida_trabalho', label: 'Saída' },
     { value: 'pausa', label: 'Pausa/Afastamento' },
     { value: 'retorno', label: 'Retorno' },
   ]
@@ -44,7 +42,10 @@ export function RegistrarPontoModal({ isOpen, onClose, onRegistrar, loading }) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-gray-800 rounded-2xl p-6 max-w-sm w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-white text-lg font-bold">Registrar Ponto Manual</h2>
+          <div>
+            <h2 className="text-white text-lg font-bold">Registrar Ponto</h2>
+            <p className="text-gray-400 text-xs">Entrada, saída, pausa ou retorno</p>
+          </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-white transition"
