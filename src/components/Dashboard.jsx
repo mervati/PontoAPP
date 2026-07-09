@@ -147,6 +147,8 @@ export function Dashboard() {
     ]
 
     let tempoTrabalho = 0
+    let temEntradaAberta = false
+
     pares.forEach((par) => {
       let entrada = hojePontos.find(p => p.tipo === par.entrada)
       let saida = hojePontos.find(p => p.tipo === par.saida)
@@ -163,6 +165,7 @@ export function Dashboard() {
         tempoTrabalho += tempo
       } else if (entrada && !saida) {
         // Se há entrada mas sem saída (ainda trabalhando), conta até agora
+        temEntradaAberta = true
         const tempo = tempoAtual - new Date(entrada.created_at)
         tempoTrabalho += tempo
       }
@@ -174,7 +177,7 @@ export function Dashboard() {
     const absDiffMs = Math.abs(diffMs)
     const horas = Math.floor(absDiffMs / (60 * 60 * 1000))
     const minutos = Math.floor((absDiffMs % (60 * 60 * 1000)) / (60 * 1000))
-    const segundos = Math.floor((absDiffMs % (60 * 1000)) / 1000)
+    const segundos = temEntradaAberta ? Math.floor((absDiffMs % (60 * 1000)) / 1000) : 0
     const negativo = diffMs < 0
 
     return { horas, minutos, segundos, negativo }

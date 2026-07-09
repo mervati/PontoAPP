@@ -138,6 +138,7 @@ export function Historico() {
     ]
 
     let tempoTrabalho = 0
+    let temEntradaAberta = false
 
     pares.forEach((par) => {
       let entrada = diasPontos.find(p => p.tipo === par.entrada)
@@ -156,6 +157,7 @@ export function Historico() {
         tempoTrabalho += tempo
       } else if (entrada && !saida) {
         // Se há entrada mas sem saída (ainda trabalhando), conta até agora
+        temEntradaAberta = true
         const tempo = tempoAtual - new Date(entrada.created_at)
         tempoTrabalho += tempo
       }
@@ -165,7 +167,7 @@ export function Historico() {
 
     const horas = Math.floor(tempoTrabalho / (60 * 60 * 1000))
     const minutos = Math.floor((tempoTrabalho % (60 * 60 * 1000)) / (60 * 1000))
-    const segundos = Math.floor((tempoTrabalho % (60 * 1000)) / 1000)
+    const segundos = temEntradaAberta ? Math.floor((tempoTrabalho % (60 * 1000)) / 1000) : 0
 
     return { horas, minutos, segundos }
   }
