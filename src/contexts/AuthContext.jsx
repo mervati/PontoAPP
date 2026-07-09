@@ -7,8 +7,29 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const ensureUserRecord = async (authUser) => {
+    if (!authUser) return
+    const { data: existing } = await supabase
+      .from('ponto_users')
+      .select('id')
+      .eq('id', authUser.id)
+      .single()
+
+    if (!existing) {
+      await supabase.from('ponto_users').insert({
+        id: authUser.id,
+        email: authUser.email,
+        full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Usuário',
+        created_at: new Date().toISOString(),
+      })
+    }
+  }
+
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        await ensureUserRecord(session.user)
+      }
       setUser(session?.user ?? null)
       setLoading(false)
     })
@@ -27,13 +48,13 @@ export function AuthProvider({ children }) {
     if (error) throw error
 
     await supabase
-      .from('users')
-      .insert([{
+      .from('ponto_users')
+      .insert({
         id: data.user.id,
         email,
         full_name: fullName,
-        created_at: new Date(),
-      }])
+        created_at: new Date().toISOString(),
+      })
 
     return data
   }
