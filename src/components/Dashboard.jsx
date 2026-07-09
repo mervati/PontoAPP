@@ -132,7 +132,7 @@ export function Dashboard() {
 
     // Se for fim de semana, não calcula banco de horas
     if (ehFinDeSemana(hoje)) {
-      return { horas: 0, minutos: 0, segundos: 0, negativo: false }
+      return { horas: 0, minutos: 0, segundos: 0, negativo: false, entradaAberta: false }
     }
 
     const hojePontos = pontos.filter(p => {
@@ -180,7 +180,7 @@ export function Dashboard() {
     const segundos = temEntradaAberta ? Math.floor((absDiffMs % (60 * 1000)) / 1000) : 0
     const negativo = diffMs < 0
 
-    return { horas, minutos, segundos, negativo }
+    return { horas, minutos, segundos, negativo, entradaAberta: temEntradaAberta }
   }
 
   const resultadoDia = calcularResultadoDia()
@@ -298,15 +298,25 @@ export function Dashboard() {
               ? 'bg-gradient-to-br from-red-500/20 to-rose-500/10 border-red-500/40'
               : 'bg-gradient-to-br from-green-500/20 to-emerald-500/10 border-green-500/40'
           }`}>
-            <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${
-              resultadoDia.negativo ? 'text-red-300/80' : 'text-green-300/80'
-            }`}>
-              {resultadoDia.negativo ? '⚠️ Débito' : '✅ Crédito'}
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className={`text-xs font-bold uppercase tracking-widest ${
+                resultadoDia.negativo ? 'text-red-300/80' : 'text-green-300/80'
+              }`}>
+                {resultadoDia.negativo ? '⚠️ Débito' : '✅ Crédito'}
+              </p>
+              {!resultadoDia.entradaAberta && resultadoDia.horas === 0 && resultadoDia.minutos === 0 && (
+                <span className="bg-blue-500/30 border border-blue-500/50 text-blue-300 px-2 py-1 rounded text-xs font-bold">
+                  ⏸️ Pausado
+                </span>
+              )}
+            </div>
             <p className={`text-3xl font-black font-mono mb-1 ${
               resultadoDia.negativo ? 'text-red-400' : 'text-green-400'
             }`}>
-              {formatarHoras(resultadoDia.horas, resultadoDia.minutos, resultadoDia.segundos, resultadoDia.negativo)}
+              {resultadoDia.entradaAberta
+                ? formatarHoras(resultadoDia.horas, resultadoDia.minutos, resultadoDia.segundos, resultadoDia.negativo)
+                : formatarHoras(resultadoDia.horas, resultadoDia.minutos, 0, resultadoDia.negativo)
+              }
             </p>
             <p className="text-gray-400 text-xs mt-2">Horas trabalhadas − 8 horas esperadas</p>
           </div>
