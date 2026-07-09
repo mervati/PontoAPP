@@ -1,16 +1,14 @@
 import { useContext, useEffect, useState } from 'react'
-import { Clock, Coffee, LogOut, LogIn, Plus } from 'lucide-react'
+import { Clock, LogIn, LogOut } from 'lucide-react'
 import { AuthContext } from '../contexts/AuthContext'
 import { PontoContext } from '../contexts/PontoContext'
 import { supabase } from '../utils/supabase'
-import { RegistrarPontoModal } from './RegistrarPontoModal'
 
 export function Dashboard() {
   const { user } = useContext(AuthContext)
   const { ultimoPonto, registrarPonto, fetchPontos, calcularBancoHoras, pontos } = useContext(PontoContext)
   const [bancoInicial, setBancoInicial] = useState(null)
-  const [abrirModal, setAbrirModal] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [abrirMenu, setAbrirMenu] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -35,65 +33,34 @@ export function Dashboard() {
     }
   }
 
+  const tiposOpcoes = [
+    { icon: LogIn, label: 'Entrada', tipo: 'ponto_1', cor: 'text-green-400' },
+    { icon: LogOut, label: 'Saída', tipo: 'ponto_2', cor: 'text-red-400' },
+    { icon: LogIn, label: 'Entrada', tipo: 'ponto_3', cor: 'text-green-400' },
+    { icon: LogOut, label: 'Saída', tipo: 'ponto_4', cor: 'text-red-400' },
+    { icon: LogIn, label: 'Entrada', tipo: 'ponto_5', cor: 'text-green-400' },
+    { icon: LogOut, label: 'Saída', tipo: 'ponto_6', cor: 'text-red-400' },
+  ]
+
   const handleRegistrarPonto = async (tipo) => {
     try {
       await registrarPonto(user.id, tipo)
+      setAbrirMenu(false)
     } catch (error) {
       alert('Erro ao registrar ponto: ' + error.message)
     }
-  }
-
-  const handleRegistrarPontoManual = async (dados) => {
-    try {
-      setLoading(true)
-      await registrarPonto(user.id, dados.tipo, dados.hora)
-      setAbrirModal(false)
-    } catch (error) {
-      alert('Erro ao registrar ponto: ' + error.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const tiposTexto = {
-    entrada_trabalho: 'Entrada',
-    entrada_almoco: 'Entrada Almoço',
-    saida_almoco: 'Saída Almoço',
-    saida_trabalho: 'Saída',
-  }
-
-  const proximoTipo = () => {
-    const tipos = ['entrada_trabalho', 'entrada_almoco', 'saida_almoco', 'saida_trabalho']
-    const hojesPontos = pontos.filter(p => {
-      const data = new Date(p.created_at).toLocaleDateString('pt-BR')
-      const hoje = new Date().toLocaleDateString('pt-BR')
-      return data === hoje
-    })
-
-    const registrados = hojesPontos.map(p => p.tipo)
-    const proximo = tipos.find(t => !registrados.includes(t))
-    return proximo || null
   }
 
   const banco = calcularBancoHoras(pontos, bancoInicial)
-  const proximo = proximoTipo()
 
-  const getPontoPorTipo = (tipo) => {
-    const hoje = new Date().toLocaleDateString('pt-BR')
-    return pontos.find(p => {
-      const data = new Date(p.created_at).toLocaleDateString('pt-BR')
-      return data === hoje && p.tipo === tipo
-    })
+  const formatarBancoHoras = () => {
+    const sinal = banco.negativo ? '-' : '+'
+    return `${sinal}${String(banco.horas).padStart(2, '0')}:${String(banco.minutos).padStart(2, '0')}`
   }
 
   const formatarHora = (isoString) => {
     const data = new Date(isoString)
     return data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  }
-
-  const formatarBancoHoras = () => {
-    const sinal = banco.negativo ? '-' : '+'
-    return `${sinal}${String(banco.horas).padStart(2, '0')}:${String(banco.minutos).padStart(2, '0')}`
   }
 
   return (
@@ -110,7 +77,7 @@ export function Dashboard() {
               <Clock className="text-teal-400" size={24} />
               <div>
                 <p className="text-gray-400 text-sm">Último ponto</p>
-                <p className="text-white font-semibold">{tiposTexto[ultimoPonto.tipo]}</p>
+                <p className="text-white font-semibold">Ponto {ultimoPonto.tipo.split('_')[1]}</p>
               </div>
             </div>
             <p className="text-teal-400 text-lg font-mono">{formatarHora(ultimoPonto.created_at)}</p>
@@ -133,47 +100,35 @@ export function Dashboard() {
           </div>
         </div>
 
-        <button
-          onClick={() => setAbrirModal(true)}
-          className={`w-full py-4 rounded-2xl font-bold text-lg transition ${
-            proximo
-              ? 'bg-gradient-to-r from-teal-500 to-teal-600 text-white hover:from-teal-600 hover:to-teal-700'
-              : 'bg-gray-700 hover:bg-gray-600 text-white'
-          }`}
-        >
-          {proximo ? tiposTexto[proximo] : 'Registrar Ponto'}
-        </button>
+        {/* Menu de pontos */}
+        <div className="relative">
+          <button
+            onClick={() => setAbrirMenu(!abrirMenu)}
+            className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white py-4 rounded-2xl font-bold text-lg hover:from-teal-600 hover:to-teal-700 transition"
+          >
+            {abrirMenu ? '✕ Fechar' : '+ Bater Ponto'}
+          </button>
 
-        {!proximo && (
-          <div className="bg-yellow-900/50 text-yellow-300 p-4 rounded-2xl text-sm mt-2">
-            ✓ Todos os pontos padrão do dia foram registrados
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-4 mt-6">
-          <div className="bg-gray-800 rounded-2xl p-4 text-center">
-            <Coffee className="text-orange-400 mx-auto mb-2" size={24} />
-            <p className="text-gray-400 text-xs mb-2">Entrada Almoço</p>
-            <p className="text-white font-mono">
-              {getPontoPorTipo('entrada_almoco') ? formatarHora(getPontoPorTipo('entrada_almoco').created_at) : '--:--'}
-            </p>
-          </div>
-
-          <div className="bg-gray-800 rounded-2xl p-4 text-center">
-            <LogOut className="text-pink-400 mx-auto mb-2" size={24} />
-            <p className="text-gray-400 text-xs mb-2">Saída</p>
-            <p className="text-white font-mono">
-              {getPontoPorTipo('saida_trabalho') ? formatarHora(getPontoPorTipo('saida_trabalho').created_at) : '--:--'}
-            </p>
-          </div>
+          {abrirMenu && (
+            <div className="absolute top-16 left-0 right-0 bg-gray-800 rounded-2xl p-4 space-y-2 z-50 border border-gray-700">
+              <div className="grid grid-cols-2 gap-2">
+                {tiposOpcoes.map((opcao, idx) => {
+                  const Icon = opcao.icon
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleRegistrarPonto(opcao.tipo)}
+                      className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl flex flex-col items-center gap-1 transition"
+                    >
+                      <Icon className={opcao.cor} size={20} />
+                      <span className="text-xs">{opcao.label} {idx + 1}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
-
-        <RegistrarPontoModal
-          isOpen={abrirModal}
-          onClose={() => setAbrirModal(false)}
-          onRegistrar={handleRegistrarPontoManual}
-          loading={loading}
-        />
       </div>
     </div>
   )
