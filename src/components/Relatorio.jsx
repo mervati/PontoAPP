@@ -228,7 +228,8 @@ export function Relatorio() {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`
   }
 
-  const calcularEstatisticas = () => {
+  const stats = useMemo(() => {
+    const calcularEstatisticas = () => {
     if (pontos.length === 0) return null
 
     const pontosPorDia = {}
@@ -263,6 +264,10 @@ export function Relatorio() {
         if (entrada && saida) {
           const tempo = new Date(saida.created_at) - new Date(entrada.created_at)
           tempoTrabalho += tempo
+        } else if (entrada && !saida) {
+          // Se há entrada mas sem saída, conta até agora
+          const tempo = tempoAtual - new Date(entrada.created_at)
+          tempoTrabalho += tempo
         }
       })
 
@@ -291,9 +296,9 @@ export function Relatorio() {
       mediaMinutos: Math.floor(mediaMinutos),
       diasTrabalhados: diasOrdenados.length,
     }
-  }
-
-  const stats = calcularEstatisticas()
+    }
+    return calcularEstatisticas()
+  }, [pontos, tempoAtual])
 
   return (
     <div className="pb-24 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 min-h-screen">
