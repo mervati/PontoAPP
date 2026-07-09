@@ -44,6 +44,14 @@ export function Dashboard() {
   const banco = calcularBancoHoras(pontos)
   const proximo = proximoTipo()
 
+  const getPontoPorTipo = (tipo) => {
+    const hoje = new Date().toLocaleDateString('pt-BR')
+    return pontos.find(p => {
+      const data = new Date(p.created_at).toLocaleDateString('pt-BR')
+      return data === hoje && p.tipo === tipo
+    })
+  }
+
   const formatarHora = (isoString) => {
     const data = new Date(isoString)
     return data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -111,7 +119,7 @@ export function Dashboard() {
             <Coffee className="text-orange-400 mx-auto mb-2" size={24} />
             <p className="text-gray-400 text-xs mb-2">Entrada Almoço</p>
             <p className="text-white font-mono">
-              {ultimoPonto?.tipo === 'entrada_almoco' ? formatarHora(ultimoPonto.created_at) : '--:--'}
+              {getPontoPorTipo('entrada_almoco') ? formatarHora(getPontoPorTipo('entrada_almoco').created_at) : '--:--'}
             </p>
           </div>
 
@@ -119,7 +127,7 @@ export function Dashboard() {
             <LogOut className="text-pink-400 mx-auto mb-2" size={24} />
             <p className="text-gray-400 text-xs mb-2">Saída</p>
             <p className="text-white font-mono">
-              {ultimoPonto?.tipo === 'saida_trabalho' ? formatarHora(ultimoPonto.created_at) : '--:--'}
+              {getPontoPorTipo('saida_trabalho') ? formatarHora(getPontoPorTipo('saida_trabalho').created_at) : '--:--'}
             </p>
           </div>
         </div>
