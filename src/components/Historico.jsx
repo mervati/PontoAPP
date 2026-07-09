@@ -1,8 +1,10 @@
 import { useContext, useMemo, useState, useEffect } from 'react'
-import { Clock, Coffee, LogOut, LogIn, Edit2, Check, X } from 'lucide-react'
+import { Clock, Coffee, LogOut, LogIn, Edit2, Check, X, Download } from 'lucide-react'
 import { PontoContext } from '../contexts/PontoContext'
 import { AuthContext } from '../contexts/AuthContext'
 import { supabase } from '../utils/supabase'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
 
 export function Historico() {
   const { user } = useContext(AuthContext)
@@ -103,11 +105,139 @@ export function Historico() {
     setNovaHora('')
   }
 
+  const exportarPDF = () => {
+    const doc = new jsPDF('p', 'mm', 'a4')
+    const agora = new Date()
+    const mes = agora.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+    const mesAno = `${String(agora.getMonth() + 1).padStart(2, '0')}/${agora.getFullYear()}`
+
+    // Título
+    doc.setFontSize(14)
+    doc.setFont(undefined, 'bold')
+    doc.text(`CONTROLE DE PONTO - ${mes.toUpperCase()}`, 15, 15)
+
+    // Info do banco
+    doc.setFontSize(10)
+    doc.setFont(undefined, 'normal')
+    doc.text('Banco de Horas Anterior:', 15, 25)
+    doc.text('Jornada Diária Contratual:', 15, 32)
+    doc.text('BANCO DE HORAS ACUMULADO:', 100, 25)
+
+    doc.setFont(undefined, 'bold')
+    doc.text('2:46', 50, 25)
+    doc.text('8:00', 50, 32)
+    doc.text('2:46', 150, 25)
+
+    // Tabela
+    const tableData = []
+    const pontosDoMes = pontos.filter(p => {
+      const data = new Date(p.created_at)
+      return data.getMonth() === agora.getMonth() && data.getFullYear() === agora.getFullYear()
+    })
+
+    const pontosPorDia = {}
+    pontosDoMes.forEach((ponto) => {
+      const data = new Date(ponto.created_at).toLocaleDateString('pt-BR')
+      if (!pontosPorDia[data]) {
+        pontosPorDia[data] = []
+      }
+      pontosPorDia[data].push(ponto)
+    })
+
+    Object.entries(pontosPorDia).forEach(([data, diasPontos]) => {
+      const dataObj = new Date(diasPontos[0].created_at)
+      const diaSemana = dataObj.toLocaleDateString('pt-BR', { weekday: 'long' })
+
+      const entrada1 = diasPontos.find(p => p.tipo === 'entrada_trabalho')
+      const saidaAlmoco = diasPontos.find(p => p.tipo === 'saida_almoco')
+      const entradaAlmoco = diasPontos.find(p => p.tipo === 'entrada_almoco')
+      const saida2 = diasPontos.find(p => p.tipo === 'saida_trabalho')
+
+      const formatarHora = (iso) => {
+        if (!iso) return '-'
+        return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      }
+
+      let totalTrabalhado = 0
+      if (entrada1 && saida2) {
+        let tempo = new Date(saida2.created_at) - new Date(entrada1.created_at)
+        if (entradaAlmoco && saidaAlmoco) {
+          const tempoAlmoco = new Date(saidaAlmoco.created_at) - new Date(entradaAlmoco.created_at)
+          tempo -= tempoAlmoco
+        }
+        totalTrabalhado = Math.floor(tempo / (60 * 60 * 1000))
+      }
+
+      const cargaDiaria = 8
+      const saldoDia = totalTrabalhado - cargaDiaria
+
+      tableData.push([
+        data,
+        diaSemana,
+        formatarHora(entrada1?.created_at),
+        formatarHora(saidaAlmoco?.created_at),
+        formatarHora(entradaAlmoco?.created_at),
+        formatarHora(saida2?.created_at),
+        `${String(totalTrabalhado).padStart(2, '0')}:00`,
+        '8:00',
+        `${saldoDia >= 0 ? '+' : ''}${String(saldoDia).padStart(2, '0')}:00`,
+      ])
+    })
+
+    doc.autoTable({
+      startY: 45,
+      head: [['Data', 'Dia da Semana', 'Entrada 1', 'Saída Almoço', 'Entrada Almoço', 'Saída 2', 'Total Trabalhado', 'Carga Diária', 'Saldo do Dia']],
+      body: tableData,
+      headStyles: { fillColor: [25, 118, 118], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [240, 240, 240] },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 18 },
+        1: { halign: 'center', cellWidth: 25 },
+        2: { halign: 'center', cellWidth: 18 },
+        3: { halign: 'center', cellWidth: 22 },
+        4: { halign: 'center', cellWidth: 22 },
+        5: { halign: 'center', cellWidth: 18 },
+        6: { halign: 'center', cellWidth: 20 },
+        7: { halign: 'center', cellWidth: 18 },
+        8: { halign: 'center', cellWidth: 18 },
+      },
+      margin: { left: 10, right: 10 },
+    })
+
+    // Total do mês
+    const totalHoras = tableData.reduce((sum, row) => {
+      const horas = parseInt(row[6])
+      return sum + (isNaN(horas) ? 0 : horas)
+    }, 0)
+
+    const finalY = doc.lastAutoTable.finalY + 10
+    doc.setFont(undefined, 'bold')
+    doc.text('Total do Mês', 15, finalY)
+    doc.text(`${String(totalHoras).padStart(2, '0')}:00`, 80, finalY)
+    doc.text('160:00', 110, finalY)
+    doc.text(`${totalHoras >= 160 ? '+' : ''}${String(totalHoras - 160).padStart(2, '0')}:00`, 150, finalY)
+
+    // Download
+    const nomeArquivo = `Controle de Ponto - ${mes}.pdf`
+    doc.save(nomeArquivo)
+  }
+
   return (
     <div className="pb-20">
       <div className="bg-gradient-to-b from-teal-700 to-teal-800 text-white p-6 rounded-b-3xl">
-        <h1 className="text-3xl font-bold mb-2">Histórico</h1>
-        <p className="text-teal-100">Seus registros de ponto</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Histórico</h1>
+            <p className="text-teal-100">Seus registros de ponto</p>
+          </div>
+          <button
+            onClick={exportarPDF}
+            className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl font-semibold flex items-center gap-2 transition"
+          >
+            <Download size={20} />
+            PDF
+          </button>
+        </div>
       </div>
 
       <div className="p-4 space-y-6">
