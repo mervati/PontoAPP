@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from 'react'
+import { useContext, useMemo, useState, useEffect } from 'react'
 import { BarChart3, Calendar } from 'lucide-react'
 import { PontoContext } from '../contexts/PontoContext'
 
@@ -7,6 +7,14 @@ export function Relatorio() {
   const [mesCalendario, setMesCalendario] = useState(new Date())
   const [diaSelecionadoInicio, setDiaSelecionadoInicio] = useState(null)
   const [diaSelecionadoFim, setDiaSelecionadoFim] = useState(null)
+  const [tempoAtual, setTempoAtual] = useState(new Date())
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTempoAtual(new Date())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   const getWeekNumber = (date) => {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -162,7 +170,7 @@ export function Relatorio() {
 
     // Se não tem seleção, mostra tudo agrupado por mês
     return agruparPorMes()
-  }, [pontos, diaSelecionadoInicio, diaSelecionadoFim])
+  }, [pontos, diaSelecionadoInicio, diaSelecionadoFim, tempoAtual])
 
   const calcularHoras = (diasPontos) => {
     let totalMs = 0
@@ -199,6 +207,10 @@ export function Relatorio() {
 
         if (entrada && saida) {
           const tempo = new Date(saida.created_at) - new Date(entrada.created_at)
+          tempoTrabalho += tempo
+        } else if (entrada && !saida) {
+          // Se há entrada mas sem saída, conta até agora
+          const tempo = tempoAtual - new Date(entrada.created_at)
           tempoTrabalho += tempo
         }
       })
