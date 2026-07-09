@@ -9,8 +9,13 @@ export function Layout({ currentTab, onTabChange, children }) {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <div className="fixed top-0 left-0 right-0 h-[max(env(safe-area-inset-top),0px)] bg-gradient-to-r from-teal-600 via-cyan-500 to-blue-600 z-50"></div>
+    <div className="min-h-screen bg-gray-900" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div
+        className="fixed top-0 left-0 right-0 bg-gradient-to-r from-teal-600 via-cyan-500 to-blue-600 z-50 pointer-events-none"
+        style={{
+          height: 'env(safe-area-inset-top)',
+        }}
+      ></div>
       {children}
 
       <nav className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 flex justify-around items-center">
