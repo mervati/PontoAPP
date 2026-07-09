@@ -304,7 +304,7 @@ export function Dashboard() {
               }`}>
                 {resultadoDia.negativo ? '⚠️ Débito' : '✅ Crédito'}
               </p>
-              {!resultadoDia.entradaAberta && resultadoDia.horas === 0 && resultadoDia.minutos === 0 && (
+              {!resultadoDia.entradaAberta && (
                 <span className="bg-blue-500/30 border border-blue-500/50 text-blue-300 px-2 py-1 rounded text-xs font-bold">
                   ⏸️ Pausado
                 </span>
