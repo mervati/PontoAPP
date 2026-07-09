@@ -1,5 +1,5 @@
 import { useContext, useState, useEffect } from 'react'
-import { LogOut, Mail, User } from 'lucide-react'
+import { LogOut, Mail, User, Edit2, Check, X } from 'lucide-react'
 import { AuthContext } from '../contexts/AuthContext'
 import { supabase } from '../utils/supabase'
 
@@ -7,6 +7,11 @@ export function Perfil() {
   const { user, logout } = useContext(AuthContext)
   const [userData, setUserData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [editandoBanco, setEditandoBanco] = useState(false)
+  const [bancoHoras, setBancoHoras] = useState(0)
+  const [bancoMinutos, setBancoMinutos] = useState(0)
+  const [bancoNegativo, setBancoNegativo] = useState(false)
+  const [salvando, setSalvando] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -17,17 +22,49 @@ export function Perfil() {
   const fetchUserData = async () => {
     try {
       const { data, error } = await supabase
-        .from('users')
+        .from('ponto_users')
         .select('*')
         .eq('id', user.id)
         .single()
 
       if (error) throw error
       setUserData(data)
+
+      // Carregar banco inicial
+      if (data?.banco_horas_inicial) {
+        setBancoHoras(data.banco_horas_inicial.horas || 0)
+        setBancoMinutos(data.banco_horas_inicial.minutos || 0)
+        setBancoNegativo(data.banco_horas_inicial.negativo || false)
+      }
     } catch (error) {
       console.error('Erro ao buscar dados do usuário:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const salvarBancoInicial = async () => {
+    try {
+      setSalvando(true)
+      const { error } = await supabase
+        .from('ponto_users')
+        .update({
+          banco_horas_inicial: {
+            horas: parseInt(bancoHoras) || 0,
+            minutos: parseInt(bancoMinutos) || 0,
+            negativo: bancoNegativo,
+          },
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+      setEditandoBanco(false)
+      alert('Banco de horas inicial atualizado com sucesso!')
+      await fetchUserData()
+    } catch (error) {
+      alert('Erro ao salvar: ' + error.message)
+    } finally {
+      setSalvando(false)
     }
   }
 
@@ -37,6 +74,11 @@ export function Perfil() {
     } catch (error) {
       alert('Erro ao fazer logout: ' + error.message)
     }
+  }
+
+  const formatarBancoInicial = () => {
+    const sinal = bancoNegativo ? '-' : '+'
+    return `${sinal}${String(bancoHoras).padStart(2, '0')}:${String(bancoMinutos).padStart(2, '0')}`
   }
 
   return (
@@ -76,6 +118,98 @@ export function Perfil() {
                 <p className="text-white text-sm">{user?.email}</p>
               </div>
             </div>
+          </div>
+
+          <div className="bg-gray-800 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-700">
+              <div>
+                <p className="text-gray-400 text-xs">Banco de Horas Inicial</p>
+                <p className="text-white text-lg font-mono font-bold">
+                  {editandoBanco ? '...' : formatarBancoInicial()}
+                </p>
+              </div>
+              {!editandoBanco && (
+                <button
+                  onClick={() => setEditandoBanco(true)}
+                  className="p-2 hover:bg-gray-700 rounded transition"
+                >
+                  <Edit2 size={18} className="text-teal-400" />
+                </button>
+              )}
+            </div>
+
+            {editandoBanco && (
+              <div className="space-y-3 pt-3">
+                <div>
+                  <label className="block text-gray-400 text-xs mb-2">Sinal</label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setBancoNegativo(false)}
+                      className={`flex-1 py-2 rounded-lg font-semibold transition ${
+                        !bancoNegativo
+                          ? 'bg-teal-600 text-white'
+                          : 'bg-gray-700 text-gray-400'
+                      }`}
+                    >
+                      + (Positivo)
+                    </button>
+                    <button
+                      onClick={() => setBancoNegativo(true)}
+                      className={`flex-1 py-2 rounded-lg font-semibold transition ${
+                        bancoNegativo
+                          ? 'bg-red-600 text-white'
+                          : 'bg-gray-700 text-gray-400'
+                      }`}
+                    >
+                      - (Negativo)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-gray-400 text-xs mb-2">Horas</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="99"
+                      value={bancoHoras}
+                      onChange={(e) => setBancoHoras(e.target.value)}
+                      className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-xs mb-2">Minutos</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={bancoMinutos}
+                      onChange={(e) => setBancoMinutos(e.target.value)}
+                      className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={salvarBancoInicial}
+                    disabled={salvando}
+                    className="flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition disabled:opacity-60"
+                  >
+                    <Check size={18} />
+                    {salvando ? 'Salvando...' : 'Salvar'}
+                  </button>
+                  <button
+                    onClick={() => setEditandoBanco(false)}
+                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition"
+                  >
+                    <X size={18} />
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-gray-800 rounded-2xl p-4 space-y-2">

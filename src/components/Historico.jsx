@@ -1,11 +1,37 @@
-import { useContext, useMemo, useState } from 'react'
+import { useContext, useMemo, useState, useEffect } from 'react'
 import { Clock, Coffee, LogOut, LogIn, Edit2, Check, X } from 'lucide-react'
 import { PontoContext } from '../contexts/PontoContext'
+import { AuthContext } from '../contexts/AuthContext'
+import { supabase } from '../utils/supabase'
 
 export function Historico() {
-  const { pontos, editarPonto } = useContext(PontoContext)
+  const { user } = useContext(AuthContext)
+  const { pontos, editarPonto, calcularBancoHoras } = useContext(PontoContext)
   const [editandoId, setEditandoId] = useState(null)
   const [novaHora, setNovaHora] = useState('')
+  const [bancoInicial, setBancoInicial] = useState(null)
+
+  useEffect(() => {
+    if (user) {
+      fetchBancoInicial()
+    }
+  }, [user])
+
+  const fetchBancoInicial = async () => {
+    try {
+      const { data } = await supabase
+        .from('ponto_users')
+        .select('banco_horas_inicial')
+        .eq('id', user.id)
+        .single()
+
+      if (data?.banco_horas_inicial) {
+        setBancoInicial(data.banco_horas_inicial)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar banco inicial:', error)
+    }
+  }
 
   const tiposTexto = {
     entrada_trabalho: { label: 'Entrada', icon: LogIn, cor: 'text-green-400' },

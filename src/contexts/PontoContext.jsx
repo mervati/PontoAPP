@@ -81,8 +81,10 @@ export function PontoProvider({ children }) {
     }
   }, [pontos, ultimoPonto])
 
-  const calcularBancoHoras = useCallback((pontos) => {
-    if (!pontos || pontos.length === 0) return { horas: 0, minutos: 0, negativo: false }
+  const calcularBancoHoras = useCallback((pontos, bancoInicial = null) => {
+    if (!pontos || pontos.length === 0) {
+      return bancoInicial || { horas: 0, minutos: 0, negativo: false }
+    }
 
     let totalMs = 0
 
@@ -111,6 +113,12 @@ export function PontoProvider({ children }) {
         totalMs += tempoTrabalho - tempoEsperado
       }
     })
+
+    // Adicionar banco inicial (se houver)
+    if (bancoInicial) {
+      const bancoMs = (bancoInicial.horas * 60 * 60 * 1000) + (bancoInicial.minutos * 60 * 1000)
+      totalMs += bancoInicial.negativo ? -bancoMs : bancoMs
+    }
 
     const horas = Math.floor(Math.abs(totalMs) / (60 * 60 * 1000))
     const minutos = Math.floor((Math.abs(totalMs) % (60 * 60 * 1000)) / (60 * 1000))

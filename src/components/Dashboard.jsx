@@ -1,17 +1,36 @@
-import { useContext, useEffect } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { Clock, Coffee, LogOut, LogIn } from 'lucide-react'
 import { AuthContext } from '../contexts/AuthContext'
 import { PontoContext } from '../contexts/PontoContext'
+import { supabase } from '../utils/supabase'
 
 export function Dashboard() {
   const { user } = useContext(AuthContext)
   const { ultimoPonto, registrarPonto, fetchPontos, calcularBancoHoras, pontos } = useContext(PontoContext)
+  const [bancoInicial, setBancoInicial] = useState(null)
 
   useEffect(() => {
     if (user) {
       fetchPontos(user.id)
+      fetchBancoInicial()
     }
   }, [user, fetchPontos])
+
+  const fetchBancoInicial = async () => {
+    try {
+      const { data } = await supabase
+        .from('ponto_users')
+        .select('banco_horas_inicial')
+        .eq('id', user.id)
+        .single()
+
+      if (data?.banco_horas_inicial) {
+        setBancoInicial(data.banco_horas_inicial)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar banco inicial:', error)
+    }
+  }
 
   const handleRegistrarPonto = async (tipo) => {
     try {
@@ -41,7 +60,7 @@ export function Dashboard() {
     return proximo || null
   }
 
-  const banco = calcularBancoHoras(pontos)
+  const banco = calcularBancoHoras(pontos, bancoInicial)
   const proximo = proximoTipo()
 
   const getPontoPorTipo = (tipo) => {
