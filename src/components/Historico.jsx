@@ -40,6 +40,12 @@ export function Historico() {
     entrada_almoco: { label: 'Entrada Almoço', icon: Coffee, cor: 'text-orange-400' },
     saida_almoco: { label: 'Saída Almoço', icon: LogIn, cor: 'text-yellow-400' },
     saida_trabalho: { label: 'Saída', icon: LogOut, cor: 'text-red-400' },
+    ponto_1_entrada: { label: 'Entrada', icon: LogIn, cor: 'text-green-400' },
+    ponto_1_saida: { label: 'Saída', icon: LogOut, cor: 'text-red-400' },
+    ponto_2_entrada: { label: 'Entrada', icon: LogIn, cor: 'text-green-400' },
+    ponto_2_saida: { label: 'Saída', icon: LogOut, cor: 'text-red-400' },
+    ponto_3_entrada: { label: 'Entrada', icon: LogIn, cor: 'text-green-400' },
+    ponto_3_saida: { label: 'Saída', icon: LogOut, cor: 'text-red-400' },
   }
 
   const pontosPorDia = useMemo(() => {
