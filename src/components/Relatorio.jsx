@@ -364,38 +364,6 @@ export function Relatorio() {
           )}
         </div>
 
-        {/* Estatísticas */}
-        {stats && (
-          <div className="bg-gradient-to-br from-teal-500/20 via-cyan-500/15 to-blue-500/20 border border-teal-500/40 rounded-2xl p-4 backdrop-blur-xl shadow-lg">
-            <p className="text-teal-200 text-xs font-bold uppercase tracking-widest mb-3">📈 Estatísticas Gerais</p>
-
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <div className="bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-teal-500/20">
-                <p className="text-gray-400 text-xs mb-1">Total Trabalhado</p>
-                <p className="text-teal-400 font-mono font-bold text-sm">{formatarHoras(stats.totalHoras, stats.totalMinutos)}</p>
-                <p className="text-gray-500 text-xs mt-1">{stats.diasTrabalhados} dia(s)</p>
-              </div>
-
-              <div className="bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-teal-500/20">
-                <p className="text-gray-400 text-xs mb-1">Média Diária</p>
-                <p className="text-cyan-400 font-mono font-bold text-sm">{formatarHoras(stats.mediaHoras, stats.mediaMinutos)}</p>
-              </div>
-
-              <div className="bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-green-500/20">
-                <p className="text-gray-400 text-xs mb-1">🏆 Dia com Mais Horas</p>
-                <p className="text-green-400 font-mono font-bold text-xs">{stats.diaComMais[0]}</p>
-                <p className="text-green-400/70 text-xs">{formatarHoras(stats.diaComMais[1].horas, stats.diaComMais[1].minutos)}</p>
-              </div>
-
-              <div className="bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-orange-500/20">
-                <p className="text-gray-400 text-xs mb-1">📉 Dia com Menos Horas</p>
-                <p className="text-orange-400 font-mono font-bold text-xs">{stats.diaComMenos[0]}</p>
-                <p className="text-orange-400/70 text-xs">{formatarHoras(stats.diaComMenos[1].horas, stats.diaComMenos[1].minutos)}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Lista de períodos */}
         <div className="space-y-3">
           {diaSelecionadoInicio && diaSelecionadoFim && (
@@ -465,6 +433,38 @@ export function Relatorio() {
             })
           )}
         </div>
+
+        {/* Estatísticas */}
+        {stats && (
+          <div className="bg-gradient-to-br from-teal-500/20 via-cyan-500/15 to-blue-500/20 border border-teal-500/40 rounded-2xl p-4 backdrop-blur-xl shadow-lg">
+            <p className="text-teal-200 text-xs font-bold uppercase tracking-widest mb-3">📈 Estatísticas Gerais</p>
+
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-teal-500/20">
+                <p className="text-gray-400 text-xs mb-1">Total Trabalhado</p>
+                <p className="text-teal-400 font-mono font-bold text-sm">{formatarHoras(stats.totalHoras, stats.totalMinutos)}</p>
+                <p className="text-gray-500 text-xs mt-1">{stats.diasTrabalhados} dia(s)</p>
+              </div>
+
+              <div className="bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-teal-500/20">
+                <p className="text-gray-400 text-xs mb-1">Média Diária</p>
+                <p className="text-cyan-400 font-mono font-bold text-sm">{formatarHoras(stats.mediaHoras, stats.mediaMinutos)}</p>
+              </div>
+
+              <div className="bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-green-500/20">
+                <p className="text-gray-400 text-xs mb-1">🏆 Dia com Mais Horas</p>
+                <p className="text-green-400 font-mono font-bold text-xs">{stats.diaComMais[0]}</p>
+                <p className="text-green-400/70 text-xs">{formatarHoras(stats.diaComMais[1].horas, stats.diaComMais[1].minutos)}</p>
+              </div>
+
+              <div className="bg-black/30 backdrop-blur-sm rounded-lg p-2 border border-orange-500/20">
+                <p className="text-gray-400 text-xs mb-1">📉 Dia com Menos Horas</p>
+                <p className="text-orange-400 font-mono font-bold text-xs">{stats.diaComMenos[0]}</p>
+                <p className="text-orange-400/70 text-xs">{formatarHoras(stats.diaComMenos[1].horas, stats.diaComMenos[1].minutos)}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
