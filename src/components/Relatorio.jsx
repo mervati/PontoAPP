@@ -130,12 +130,14 @@ export function Relatorio() {
     if (diaSelecionadoInicio) {
       const [diaI, mesI, anoI] = diaSelecionadoInicio.split('/').map(Number)
       const dataInicio = new Date(anoI, mesI - 1, diaI)
+      dataInicio.setHours(0, 0, 0, 0)
 
-      let dataFim = dataInicio
+      let dataFim = new Date(dataInicio)
       if (diaSelecionadoFim) {
         const [diaF, mesF, anoF] = diaSelecionadoFim.split('/').map(Number)
         dataFim = new Date(anoF, mesF - 1, diaF)
       }
+      dataFim.setHours(23, 59, 59, 999)
 
       const pontosFiltrados = pontos.filter(p => {
         const dataPonto = new Date(p.created_at)
