@@ -12,6 +12,7 @@ export function Dashboard() {
     const salvo = localStorage.getItem('mostrarResultadoDia')
     return salvo ? JSON.parse(salvo) : false
   })
+  const [tempoAtual, setTempoAtual] = useState(new Date())
 
   useEffect(() => {
     if (user) {
@@ -19,6 +20,13 @@ export function Dashboard() {
       fetchBancoInicial()
     }
   }, [user, fetchPontos])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTempoAtual(new Date())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   const fetchBancoInicial = async () => {
     try {
@@ -167,6 +175,60 @@ export function Dashboard() {
   }
 
   const resultadoDia = calcularResultadoDia()
+
+  const calcularTempoFaltando = () => {
+    if (!resultadoDia.negativo) return null
+
+    const totalDebitoMs = (resultadoDia.horas * 60 * 60 * 1000) + (resultadoDia.minutos * 60 * 1000)
+    const agora = new Date()
+
+    const hojePontos = pontos.filter(p => {
+      const data = new Date(p.created_at).toLocaleDateString('pt-BR')
+      const hoje = new Date().toLocaleDateString('pt-BR')
+      return data === hoje
+    })
+
+    const pares = [
+      { entrada: 'ponto_1_entrada', saida: 'ponto_1_saida', entradaAntiga: 'entrada_trabalho', saidaAntiga: 'saida_trabalho' },
+      { entrada: 'ponto_2_entrada', saida: 'ponto_2_saida' },
+      { entrada: 'ponto_3_entrada', saida: 'ponto_3_saida' },
+    ]
+
+    let tempoTrabalhado = 0
+    let ultimaSaida = null
+
+    pares.forEach((par) => {
+      let entrada = hojePontos.find(p => p.tipo === par.entrada)
+      let saida = hojePontos.find(p => p.tipo === par.saida)
+
+      if (!entrada && par.entradaAntiga) {
+        entrada = hojePontos.find(p => p.tipo === par.entradaAntiga)
+      }
+      if (!saida && par.saidaAntiga) {
+        saida = hojePontos.find(p => p.tipo === par.saidaAntiga)
+      }
+
+      if (entrada && saida) {
+        const tempo = new Date(saida.created_at) - new Date(entrada.created_at)
+        tempoTrabalhado += tempo
+        ultimaSaida = new Date(saida.created_at)
+      }
+    })
+
+    let tempoDisponivel = 0
+    if (ultimaSaida) {
+      tempoDisponivel = agora - ultimaSaida
+    }
+
+    const tempoFaltandoMs = totalDebitoMs - tempoDisponivel
+    const horas = Math.max(0, Math.floor(tempoFaltandoMs / (60 * 60 * 1000)))
+    const minutos = Math.max(0, Math.floor((tempoFaltandoMs % (60 * 60 * 1000)) / (60 * 1000)))
+    const segundos = Math.max(0, Math.floor((tempoFaltandoMs % (60 * 1000)) / 1000))
+
+    return { horas, minutos, segundos }
+  }
+
+  const tempoFaltando = calcularTempoFaltando()
 
   const formatarHoras = (h, m, neg) => {
     const sinal = neg ? '-' : '+'
@@ -321,6 +383,21 @@ export function Dashboard() {
             )}
           </div>
         </div>
+
+        {bancoInicial?.negativo && tempoFaltando && (
+          <div className="mt-3 bg-gradient-to-br from-red-600/30 to-red-500/20 border border-red-500/50 rounded-2xl p-4 backdrop-blur-xl shadow-xl">
+            <p className="text-red-200 text-xs font-bold uppercase tracking-widest mb-3">⏱️ Tempo para Zerar Débito</p>
+            <div className="bg-red-900/40 rounded-xl p-3 text-center border border-red-500/30">
+              <p className="text-red-300 text-xs mb-2">Você precisa trabalhar mais:</p>
+              <p className="text-red-400 font-mono text-2xl font-black">
+                {String(tempoFaltando.horas).padStart(2, '0')}:{String(tempoFaltando.minutos).padStart(2, '0')}:{String(tempoFaltando.segundos).padStart(2, '0')}
+              </p>
+              <p className="text-red-300/60 text-xs mt-2">
+                {tempoFaltando.horas}h {tempoFaltando.minutos}m
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
