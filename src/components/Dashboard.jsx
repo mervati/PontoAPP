@@ -8,7 +8,6 @@ export function Dashboard() {
   const { user } = useContext(AuthContext)
   const { ultimoPonto, registrarPonto, fetchPontos, calcularBancoHoras, pontos } = useContext(PontoContext)
   const [bancoInicial, setBancoInicial] = useState(null)
-  const [abrirMenu, setAbrirMenu] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -33,19 +32,39 @@ export function Dashboard() {
     }
   }
 
-  const tiposOpcoes = [
-    { icon: LogIn, label: 'Entrada', tipo: 'ponto_1', cor: 'text-green-400' },
-    { icon: LogOut, label: 'Saída', tipo: 'ponto_2', cor: 'text-red-400' },
-    { icon: LogIn, label: 'Entrada', tipo: 'ponto_3', cor: 'text-green-400' },
-    { icon: LogOut, label: 'Saída', tipo: 'ponto_4', cor: 'text-red-400' },
-    { icon: LogIn, label: 'Entrada', tipo: 'ponto_5', cor: 'text-green-400' },
-    { icon: LogOut, label: 'Saída', tipo: 'ponto_6', cor: 'text-red-400' },
+  const tiposSequencia = [
+    { label: 'Entrada', tipo: 'ponto_1', icon: LogIn, cor: 'text-green-400' },
+    { label: 'Saída', tipo: 'ponto_2', icon: LogOut, cor: 'text-red-400' },
+    { label: 'Entrada', tipo: 'ponto_3', icon: LogIn, cor: 'text-green-400' },
+    { label: 'Saída', tipo: 'ponto_4', icon: LogOut, cor: 'text-red-400' },
+    { label: 'Entrada', tipo: 'ponto_5', icon: LogIn, cor: 'text-green-400' },
+    { label: 'Saída', tipo: 'ponto_6', icon: LogOut, cor: 'text-red-400' },
   ]
 
-  const handleRegistrarPonto = async (tipo) => {
+  const getProximoPonto = () => {
+    const hojePontos = pontos.filter(p => {
+      const data = new Date(p.created_at).toLocaleDateString('pt-BR')
+      const hoje = new Date().toLocaleDateString('pt-BR')
+      return data === hoje
+    })
+
+    const indiceProximo = hojePontos.length
+    if (indiceProximo < tiposSequencia.length) {
+      return tiposSequencia[indiceProximo]
+    }
+    return null
+  }
+
+  const proximoPonto = getProximoPonto()
+
+  const handleRegistrarPonto = async () => {
+    if (!proximoPonto) {
+      alert('Todos os 6 pontos do dia já foram registrados')
+      return
+    }
+
     try {
-      await registrarPonto(user.id, tipo)
-      setAbrirMenu(false)
+      await registrarPonto(user.id, proximoPonto.tipo)
     } catch (error) {
       alert('Erro ao registrar ponto: ' + error.message)
     }
@@ -100,35 +119,19 @@ export function Dashboard() {
           </div>
         </div>
 
-        {/* Menu de pontos */}
-        <div className="relative">
+        {proximoPonto ? (
           <button
-            onClick={() => setAbrirMenu(!abrirMenu)}
-            className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white py-4 rounded-2xl font-bold text-lg hover:from-teal-600 hover:to-teal-700 transition"
+            onClick={handleRegistrarPonto}
+            className="w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white py-4 rounded-2xl font-bold text-lg hover:from-teal-600 hover:to-teal-700 transition flex items-center justify-center gap-2"
           >
-            {abrirMenu ? '✕ Fechar' : '+ Bater Ponto'}
+            <proximoPonto.icon size={24} />
+            {proximoPonto.label}
           </button>
-
-          {abrirMenu && (
-            <div className="absolute top-16 left-0 right-0 bg-gray-800 rounded-2xl p-4 space-y-2 z-50 border border-gray-700">
-              <div className="grid grid-cols-2 gap-2">
-                {tiposOpcoes.map((opcao, idx) => {
-                  const Icon = opcao.icon
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => handleRegistrarPonto(opcao.tipo)}
-                      className="bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl flex flex-col items-center gap-1 transition"
-                    >
-                      <Icon className={opcao.cor} size={20} />
-                      <span className="text-xs">{opcao.label} {idx + 1}</span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+        ) : (
+          <div className="bg-yellow-900/50 text-yellow-300 p-4 rounded-2xl text-sm text-center">
+            ✓ Todos os 6 pontos do dia foram registrados
+          </div>
+        )}
       </div>
     </div>
   )
