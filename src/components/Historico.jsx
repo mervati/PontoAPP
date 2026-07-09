@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState, useEffect } from 'react'
+import { useContext, useMemo, useState, useEffect, useRef } from 'react'
 import { Clock, Coffee, LogOut, LogIn, Edit2, Check, X, Download, Trash2 } from 'lucide-react'
 import { PontoContext } from '../contexts/PontoContext'
 import { AuthContext } from '../contexts/AuthContext'
@@ -34,6 +34,24 @@ export function Historico() {
     }, 1000)
     return () => clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (editandoId && !event.target.closest('[data-edit-input]')) {
+        const pontoEditando = pontos.find(p => p.id === editandoId)
+        if (pontoEditando && novaHora) {
+          salvarEdicao(pontoEditando)
+        } else {
+          cancelarEdicao()
+        }
+      }
+    }
+
+    if (editandoId) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [editandoId, novaHora, pontos])
 
   const fetchDiasFeriados = async () => {
     try {
@@ -575,6 +593,7 @@ export function Historico() {
                               value={novaHora}
                               onChange={(e) => setNovaHora(e.target.value)}
                               className="bg-gray-600 text-white text-xs px-2 py-1 rounded mt-1 w-20"
+                              data-edit-input
                             />
                           ) : (
                             <p className="text-gray-400 text-xs">{formatarHora(ponto.created_at)}</p>
