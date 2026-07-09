@@ -457,7 +457,7 @@ export function Historico() {
       theme: 'grid',
       styles: { fontSize: 8, halign: 'center', valign: 'middle', cellPadding: 1.5 },
       headStyles: { fillColor: [25, 118, 118], textColor: 255, fontStyle: 'bold', halign: 'center' },
-      bodyStyles: { textColor: 20 },
+      bodyStyles: { textColor: 20, halign: 'center' },
       footStyles: { fillColor: [235, 235, 235], textColor: 0, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [245, 245, 245] },
       margin: { left: 8, right: 8 },
