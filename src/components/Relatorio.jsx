@@ -408,7 +408,14 @@ export function Relatorio() {
     const tableData = []
     let totalHorasMs = 0
 
-    Object.entries(pontosPorDia).forEach(([data, diasPontos]) => {
+    // Ordena os dias do mais antigo para o mais novo (DD/MM/YYYY)
+    const diasOrdenados = Object.entries(pontosPorDia).sort((a, b) => {
+      const [da, ma, aa] = a[0].split('/').map(Number)
+      const [db, mb, ab] = b[0].split('/').map(Number)
+      return new Date(aa, ma - 1, da) - new Date(ab, mb - 1, db)
+    })
+
+    diasOrdenados.forEach(([data, diasPontos]) => {
       const dataObj = new Date(diasPontos[0].created_at)
       const diaSemana = dataObj.toLocaleDateString('pt-BR', { weekday: 'long' })
       const diaFeriado = diasFeriados.find(d => d.data === data)
