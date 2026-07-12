@@ -15,6 +15,7 @@ export function Relatorio() {
   const [tempoAtual, setTempoAtual] = useState(new Date())
   const [diasFeriados, setDiasFeriados] = useState([])
   const [bancoInicial, setBancoInicial] = useState(null)
+  const [jornadaDiaria, setJornadaDiaria] = useState({ horas: 8, minutos: 0 })
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -33,16 +34,21 @@ export function Relatorio() {
     try {
       const { data } = await supabase
         .from('ponto_users')
-        .select('dias_feriados, banco_horas_inicial')
+        .select('dias_feriados, banco_horas_inicial, jornada_diaria')
         .eq('id', user.id)
         .single()
 
       if (data?.dias_feriados) setDiasFeriados(data.dias_feriados)
       if (data?.banco_horas_inicial) setBancoInicial(data.banco_horas_inicial)
+      if (data?.jornada_diaria) setJornadaDiaria(data.jornada_diaria)
     } catch (error) {
       console.error('Erro ao buscar dados do usuário:', error)
     }
   }
+
+  // Jornada diária em minutos (padrão 8h) e rótulo HH:MM para exibir
+  const jornadaMinutos = (jornadaDiaria?.horas ?? 8) * 60 + (jornadaDiaria?.minutos ?? 0)
+  const jornadaLabel = `${String(jornadaDiaria?.horas ?? 8).padStart(2, '0')}:${String(jornadaDiaria?.minutos ?? 0).padStart(2, '0')}`
 
   const getWeekNumber = (date) => {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -357,7 +363,7 @@ export function Relatorio() {
     doc.text('Jornada Diária Contratual:', 15, 31)
     doc.setFont(undefined, 'bold')
     doc.text(bancoAnterior, 60, 25)
-    doc.text('8:00', 60, 31)
+    doc.text(jornadaLabel, 60, 31)
     doc.text(`BANCO DE HORAS ACUMULADO: ${bancoAnterior}`, 100, 25)
 
     // Filtrar pontos conforme seleção do calendário
@@ -436,7 +442,7 @@ export function Relatorio() {
 
         const horas = Math.floor(totalTrabalhaoMs / (60 * 60 * 1000))
         const minutos = Math.floor((totalTrabalhaoMs % (60 * 60 * 1000)) / (60 * 1000))
-        const saldoMs = totalTrabalhaoMs - 8 * 60 * 60 * 1000
+        const saldoMs = totalTrabalhaoMs - jornadaMinutos * 60 * 1000
         const saldoHoras = Math.floor(Math.abs(saldoMs) / (60 * 60 * 1000))
         const saldoMinutos = Math.floor((Math.abs(saldoMs) % (60 * 60 * 1000)) / (60 * 1000))
         const saldoNegativo = saldoMs < 0
@@ -453,7 +459,7 @@ export function Relatorio() {
           formatarHora(entrada3?.created_at),
           formatarHora(saida3?.created_at),
           `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`,
-          '8:00',
+          jornadaLabel,
           `${saldoNegativo ? '-' : '+'}${String(saldoHoras).padStart(2, '0')}:${String(saldoMinutos).padStart(2, '0')}`,
         ])
       }
@@ -463,7 +469,9 @@ export function Relatorio() {
     const totalDias = Object.keys(pontosPorDia).length
     const totalHoras = Math.floor(totalHorasMs / (60 * 60 * 1000))
     const totalMinutos = Math.floor((totalHorasMs % (60 * 60 * 1000)) / (60 * 1000))
-    const metaMs = 8 * totalDias * 60 * 60 * 1000
+    const metaMs = jornadaMinutos * totalDias * 60 * 1000
+    const metaTotalHoras = Math.floor(metaMs / (60 * 60 * 1000))
+    const metaTotalMinutos = Math.floor((metaMs % (60 * 60 * 1000)) / (60 * 1000))
     const saldoTotalMs = totalHorasMs - metaMs
     const saldoTotalHoras = Math.floor(Math.abs(saldoTotalMs) / (60 * 60 * 1000))
     const saldoTotalMinutos = Math.floor((Math.abs(saldoTotalMs) % (60 * 60 * 1000)) / (60 * 1000))
@@ -472,7 +480,7 @@ export function Relatorio() {
     const footRow = [
       { content: 'Total do Período', colSpan: 8, styles: { halign: 'right' } },
       `${String(totalHoras).padStart(2, '0')}:${String(totalMinutos).padStart(2, '0')}`,
-      `${8 * totalDias}:00`,
+      `${String(metaTotalHoras).padStart(2, '0')}:${String(metaTotalMinutos).padStart(2, '0')}`,
       `${saldoTotalNegativo ? '-' : '+'}${String(saldoTotalHoras).padStart(2, '0')}:${String(saldoTotalMinutos).padStart(2, '0')}`,
     ]
 
@@ -619,7 +627,9 @@ export function Relatorio() {
             agruparPorPeriodo.map((periodo) => {
               const { horas, minutos, dias, totalMs } = calcularHoras(periodo.pontos)
 
-              const metaMs = 8 * dias * 60 * 60 * 1000
+              const metaMs = jornadaMinutos * dias * 60 * 1000
+              const metaHorasTotal = Math.floor(metaMs / (60 * 60 * 1000))
+              const metaMinTotal = Math.floor((metaMs % (60 * 60 * 1000)) / (60 * 1000))
               const diferencaMs = totalMs - metaMs
               const absDiffMs = Math.abs(diferencaMs)
               const diffHoras = Math.floor(absDiffMs / (60 * 60 * 1000))
@@ -659,7 +669,7 @@ export function Relatorio() {
 
                   {/* Meta */}
                   <p className="text-gray-400 text-xs mt-2">
-                    Meta: {8 * dias}h | Diferença:{' '}
+                    Meta: {metaHorasTotal}h{metaMinTotal > 0 ? ` ${metaMinTotal}m` : ''} | Diferença:{' '}
                     <span
                       className={
                         totalMs >= metaMs ? 'text-green-400' : 'text-orange-400'

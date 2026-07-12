@@ -12,13 +12,9 @@ export function Perfil() {
   const [bancoMinutos, setBancoMinutos] = useState(0)
   const [bancoNegativo, setBancoNegativo] = useState(false)
   const [salvando, setSalvando] = useState(false)
-  const [alarmes, setAlarmes] = useState({
-    habilitado: false,
-    entrada1: '09:00',
-    saida1: '12:30',
-    entrada2: '13:30',
-    saida2: '17:30',
-  })
+  const [editandoJornada, setEditandoJornada] = useState(false)
+  const [jornadaHoras, setJornadaHoras] = useState(8)
+  const [jornadaMinutos, setJornadaMinutos] = useState(0)
 
   useEffect(() => {
     if (user) {
@@ -44,32 +40,15 @@ export function Perfil() {
         setBancoNegativo(data.banco_horas_inicial.negativo || false)
       }
 
-      // Carregar alarmes
-      if (data?.alarmes) {
-        setAlarmes(data.alarmes)
+      // Carregar jornada diária
+      if (data?.jornada_diaria) {
+        setJornadaHoras(data.jornada_diaria.horas ?? 8)
+        setJornadaMinutos(data.jornada_diaria.minutos ?? 0)
       }
     } catch (error) {
       console.error('Erro ao buscar dados do usuário:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const salvarAlarmes = async () => {
-    try {
-      setSalvando(true)
-      const { error } = await supabase
-        .from('ponto_users')
-        .update({ alarmes })
-        .eq('id', user.id)
-
-      if (error) throw error
-      alert('Alarmes salvos com sucesso!')
-      await fetchUserData()
-    } catch (error) {
-      alert('Erro ao salvar alarmes: ' + error.message)
-    } finally {
-      setSalvando(false)
     }
   }
 
@@ -98,6 +77,30 @@ export function Perfil() {
     }
   }
 
+  const salvarJornada = async () => {
+    try {
+      setSalvando(true)
+      const { error } = await supabase
+        .from('ponto_users')
+        .update({
+          jornada_diaria: {
+            horas: parseInt(jornadaHoras) || 0,
+            minutos: parseInt(jornadaMinutos) || 0,
+          },
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+      setEditandoJornada(false)
+      alert('Jornada diária atualizada com sucesso!')
+      await fetchUserData()
+    } catch (error) {
+      alert('Erro ao salvar: ' + error.message)
+    } finally {
+      setSalvando(false)
+    }
+  }
+
   const handleLogout = async () => {
     try {
       await logout()
@@ -110,6 +113,14 @@ export function Perfil() {
     const sinal = bancoNegativo ? '-' : '+'
     return `${sinal}${String(bancoHoras).padStart(2, '0')}:${String(bancoMinutos).padStart(2, '0')}`
   }
+
+  // Dados vindos do Google (via Supabase Auth)
+  const fotoGoogle = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || null
+  const nomeGoogle =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    userData?.full_name ||
+    'Usuário'
 
   return (
     <div className="pb-24 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 min-h-screen">
@@ -132,10 +143,19 @@ export function Perfil() {
       ) : (
         <div className="px-3 pt-4 space-y-3">
           <div className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700/50 rounded-2xl p-5 text-center backdrop-blur-xl shadow-lg">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 mx-auto mb-3 flex items-center justify-center shadow-lg shadow-teal-500/30">
-              <User className="text-white" size={32} />
-            </div>
-            <h2 className="text-white text-lg font-bold mb-1">{userData?.full_name || 'Usuário'}</h2>
+            {fotoGoogle ? (
+              <img
+                src={fotoGoogle}
+                alt={nomeGoogle}
+                referrerPolicy="no-referrer"
+                className="w-16 h-16 rounded-full object-cover mx-auto mb-3 shadow-lg shadow-teal-500/30 ring-2 ring-teal-500/50"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 mx-auto mb-3 flex items-center justify-center shadow-lg shadow-teal-500/30">
+                <User className="text-white" size={32} />
+              </div>
+            )}
+            <h2 className="text-white text-lg font-bold mb-1">{nomeGoogle}</h2>
             <p className="text-gray-400 text-xs">{user?.email}</p>
           </div>
 
@@ -144,7 +164,7 @@ export function Perfil() {
               <User className="text-teal-400" size={18} />
               <div>
                 <p className="text-gray-400 text-xs">Nome Completo</p>
-                <p className="text-white text-sm">{userData?.full_name || '-'}</p>
+                <p className="text-white text-sm">{nomeGoogle}</p>
               </div>
             </div>
 
@@ -249,6 +269,83 @@ export function Perfil() {
             )}
           </div>
 
+          <div className="bg-gray-800 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-700">
+              <div>
+                <p className="text-gray-400 text-xs">Jornada Diária de Trabalho</p>
+                <p className="text-white text-lg font-mono font-bold">
+                  {editandoJornada
+                    ? '...'
+                    : `${String(jornadaHoras).padStart(2, '0')}:${String(jornadaMinutos).padStart(2, '0')}`}
+                </p>
+                <p className="text-gray-500 text-[11px] mt-1 leading-snug">
+                  💡 Informe apenas as horas de <strong>trabalho</strong>, sem o almoço
+                  (o almoço é batido à parte e não conta no banco de horas).
+                </p>
+              </div>
+              {!editandoJornada && (
+                <button
+                  onClick={() => setEditandoJornada(true)}
+                  className="p-2 hover:bg-gray-700 rounded transition"
+                >
+                  <Edit2 size={18} className="text-teal-400" />
+                </button>
+              )}
+            </div>
+
+            {editandoJornada && (
+              <div className="space-y-3 pt-1">
+                <p className="text-gray-400 text-xs">
+                  Quantas horas de <strong>trabalho</strong> você deve fazer por dia (ex: 8h, 9h).
+                  Ex: se você trabalha 9h com 1h15 de almoço batido à parte, informe <strong>9h</strong>
+                  (só o trabalho). Se as horas já incluem o almoço, desconte o almoço aqui.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-gray-400 text-xs mb-2">Horas</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="24"
+                      value={jornadaHoras}
+                      onChange={(e) => setJornadaHoras(e.target.value)}
+                      className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-gray-400 text-xs mb-2">Minutos</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="59"
+                      value={jornadaMinutos}
+                      onChange={(e) => setJornadaMinutos(e.target.value)}
+                      className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    onClick={salvarJornada}
+                    disabled={salvando}
+                    className="flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition disabled:opacity-60"
+                  >
+                    <Check size={18} />
+                    {salvando ? 'Salvando...' : 'Salvar'}
+                  </button>
+                  <button
+                    onClick={() => setEditandoJornada(false)}
+                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition"
+                  >
+                    <X size={18} />
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="bg-gray-800 rounded-2xl p-4 space-y-2">
             <p className="text-gray-400 text-xs mb-3">Informações da Conta</p>
             <div className="flex justify-between mb-2">
@@ -263,75 +360,6 @@ export function Perfil() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-800/50 to-blue-900/50 border border-blue-700/50 rounded-2xl p-4 space-y-3 backdrop-blur-xl">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-blue-200 font-bold text-sm">📳 Alarmes de Vibração</p>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={alarmes.habilitado}
-                  onChange={(e) => setAlarmes({ ...alarmes, habilitado: e.target.checked })}
-                  className="w-4 h-4"
-                />
-                <span className="text-gray-400 text-xs">Habilitado</span>
-              </label>
-            </div>
-
-            {alarmes.habilitado && (
-              <div className="space-y-2 pt-3 border-t border-blue-700/50">
-                <p className="text-gray-400 text-xs mb-3">⏰ 5 minutos antes de cada ponto:</p>
-
-                <div>
-                  <label className="block text-gray-400 text-xs mb-1">Entrada 1</label>
-                  <input
-                    type="time"
-                    value={alarmes.entrada1}
-                    onChange={(e) => setAlarmes({ ...alarmes, entrada1: e.target.value })}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-400 text-xs mb-1">Saída 1</label>
-                  <input
-                    type="time"
-                    value={alarmes.saida1}
-                    onChange={(e) => setAlarmes({ ...alarmes, saida1: e.target.value })}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-400 text-xs mb-1">Entrada 2</label>
-                  <input
-                    type="time"
-                    value={alarmes.entrada2}
-                    onChange={(e) => setAlarmes({ ...alarmes, entrada2: e.target.value })}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-400 text-xs mb-1">Saída 2</label>
-                  <input
-                    type="time"
-                    value={alarmes.saida2}
-                    onChange={(e) => setAlarmes({ ...alarmes, saida2: e.target.value })}
-                    className="w-full bg-gray-700 text-white px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <button
-                  onClick={salvarAlarmes}
-                  disabled={salvando}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold flex items-center justify-center gap-2 transition disabled:opacity-60 mt-3"
-                >
-                  <Check size={16} />
-                  {salvando ? 'Salvando...' : 'Salvar Alarmes'}
-                </button>
-              </div>
-            )}
-          </div>
 
           <button
             onClick={handleLogout}

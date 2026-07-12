@@ -102,13 +102,18 @@ export function PontoProvider({ children }) {
     }
   }, [pontos, ultimoPonto])
 
-  const calcularBancoHoras = useCallback((pontos, bancoInicial = null) => {
+  const calcularBancoHoras = useCallback((pontos, bancoInicial = null, diasFeriados = [], jornadaMinutos = 480) => {
     if (!pontos || pontos.length === 0) {
       return bancoInicial || { horas: 0, minutos: 0, negativo: false }
     }
 
     let totalMs = 0
-    const diasTrabalho = new Set()
+
+    const ehFinDeSemana = (dataStr) => {
+      const [d, m, a] = dataStr.split('/').map(Number)
+      const dia = new Date(a, m - 1, d).getDay()
+      return dia === 0 || dia === 6
+    }
 
     const pontosPorDia = {}
     pontos.forEach((ponto) => {
@@ -120,8 +125,10 @@ export function PontoProvider({ children }) {
     })
 
 
-    Object.values(pontosPorDia).forEach((diasPontos) => {
-      diasTrabalho.add(diasPontos.length > 0 ? 1 : 0)
+    Object.entries(pontosPorDia).forEach(([data, diasPontos]) => {
+      // Não conta fim de semana nem feriados/férias no banco de horas
+      if (ehFinDeSemana(data)) return
+      if (diasFeriados.some(f => f.data === data)) return
 
       // 6 pares: entrada1-saida1, entrada2-saida2, entrada3-saida3
       const pares = [
@@ -150,7 +157,7 @@ export function PontoProvider({ children }) {
         }
       })
 
-      const tempoEsperado = 8 * 60 * 60 * 1000
+      const tempoEsperado = jornadaMinutos * 60 * 1000
       totalMs += tempoTrabalho - tempoEsperado
     })
 

@@ -8,13 +8,13 @@ export function Dashboard() {
   const { user } = useContext(AuthContext)
   const { ultimoPonto, registrarPonto, fetchPontos, calcularBancoHoras, pontos } = useContext(PontoContext)
   const [bancoInicial, setBancoInicial] = useState(null)
+  const [diasFeriados, setDiasFeriados] = useState([])
+  const [jornadaDiaria, setJornadaDiaria] = useState({ horas: 8, minutos: 0 })
   const [mostrarResultadoDia, setMostrarResultadoDia] = useState(() => {
     const salvo = localStorage.getItem('mostrarResultadoDia')
     return salvo ? JSON.parse(salvo) : false
   })
   const [tempoAtual, setTempoAtual] = useState(new Date())
-  const [alarmes, setAlarmes] = useState(null)
-  const [ultimoAlarme, setUltimoAlarme] = useState(null)
 
   useEffect(() => {
     if (user) {
@@ -30,72 +30,22 @@ export function Dashboard() {
     return () => clearInterval(interval)
   }, [])
 
-  useEffect(() => {
-    const fetchAlarmes = async () => {
-      try {
-        const { data } = await supabase
-          .from('ponto_users')
-          .select('alarmes')
-          .eq('id', user.id)
-          .single()
-
-        if (data?.alarmes) {
-          setAlarmes(data.alarmes)
-        }
-      } catch (error) {
-        console.error('Erro ao buscar alarmes:', error)
-      }
-    }
-
-    if (user) {
-      fetchAlarmes()
-    }
-  }, [user])
-
-  useEffect(() => {
-    if (!alarmes?.habilitado) return
-
-    const verificarAlarme = () => {
-      const agora = new Date()
-      const horaAtual = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`
-
-      const horariosAlarme = [
-        { hora: alarmes.entrada1, nome: 'Entrada 1' },
-        { hora: alarmes.saida1, nome: 'Saída 1' },
-        { hora: alarmes.entrada2, nome: 'Entrada 2' },
-        { hora: alarmes.saida2, nome: 'Saída 2' },
-      ]
-
-      horariosAlarme.forEach(({ hora, nome }) => {
-        const [hh, mm] = hora.split(':')
-        const horarioAlarme = new Date()
-        horarioAlarme.setHours(parseInt(hh), parseInt(mm) - 5, 0, 0)
-        const horarioFormatado = `${String(horarioAlarme.getHours()).padStart(2, '0')}:${String(horarioAlarme.getMinutes()).padStart(2, '0')}`
-
-        if (horaAtual === horarioFormatado && ultimoAlarme !== nome) {
-          // Vibrar
-          if (navigator.vibrate) {
-            navigator.vibrate([200, 100, 200])
-          }
-          setUltimoAlarme(nome)
-          setTimeout(() => setUltimoAlarme(null), 60000)
-        }
-      })
-    }
-
-    verificarAlarme()
-  }, [tempoAtual, alarmes, ultimoAlarme])
-
   const fetchBancoInicial = async () => {
     try {
       const { data } = await supabase
         .from('ponto_users')
-        .select('banco_horas_inicial')
+        .select('banco_horas_inicial, dias_feriados, jornada_diaria')
         .eq('id', user.id)
         .single()
 
       if (data?.banco_horas_inicial) {
         setBancoInicial(data.banco_horas_inicial)
+      }
+      if (data?.dias_feriados) {
+        setDiasFeriados(data.dias_feriados)
+      }
+      if (data?.jornada_diaria) {
+        setJornadaDiaria(data.jornada_diaria)
       }
     } catch (error) {
       console.error('Erro ao buscar banco inicial:', error)
@@ -185,6 +135,19 @@ export function Dashboard() {
 
   const diasIncompletos = verificarDiasIncompletos()
 
+  // Jornada diária configurada no Perfil, convertida em minutos (padrão 8h)
+  const jornadaMinutos = (jornadaDiaria?.horas ?? 8) * 60 + (jornadaDiaria?.minutos ?? 0)
+
+  // Banco de horas = banco inicial + saldo de todos os dias anteriores a hoje
+  // (hoje ainda está em andamento e aparece no card "Resultado do Dia")
+  const bancoAtual = (() => {
+    const hoje = new Date().toLocaleDateString('pt-BR')
+    const pontosAteOntem = pontos.filter(
+      (p) => new Date(p.created_at).toLocaleDateString('pt-BR') !== hoje
+    )
+    return calcularBancoHoras(pontosAteOntem, bancoInicial, diasFeriados, jornadaMinutos)
+  })()
+
   const calcularResultadoDia = () => {
     const hoje = new Date().toLocaleDateString('pt-BR')
 
@@ -229,7 +192,7 @@ export function Dashboard() {
       }
     })
 
-    const tempoEsperado = 8 * 60 * 60 * 1000
+    const tempoEsperado = jornadaMinutos * 60 * 1000
     const diffMs = tempoTrabalho - tempoEsperado
 
     const absDiffMs = Math.abs(diffMs)
@@ -382,25 +345,25 @@ export function Dashboard() {
         </div>
 
         <div className={`group rounded-2xl p-3 border backdrop-blur-xl shadow-xl transition-all mt-3 ${
-          bancoInicial?.negativo
+          bancoAtual?.negativo
             ? 'bg-gradient-to-br from-red-500/20 to-rose-500/10 border-red-500/40'
             : 'bg-gradient-to-br from-purple-500/20 to-pink-500/10 border-purple-500/40'
         }`}>
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className={`text-xs font-bold uppercase tracking-widest mb-2 ${
-                bancoInicial?.negativo ? 'text-red-300/80' : 'text-purple-300/80'
+                bancoAtual?.negativo ? 'text-red-300/80' : 'text-purple-300/80'
               }`}>
                 💰 Banco de Horas
               </p>
               <p className={`text-3xl font-black font-mono ${
-                bancoInicial?.negativo ? 'text-red-400' : 'text-purple-300'
+                bancoAtual?.negativo ? 'text-red-400' : 'text-purple-300'
               }`}>
-                {formatarHoras(bancoInicial?.horas || 0, bancoInicial?.minutos || 0, 0, bancoInicial?.negativo || false)}
+                {formatarHoras(bancoAtual?.horas || 0, bancoAtual?.minutos || 0, 0, bancoAtual?.negativo || false)}
               </p>
               <p className="text-gray-400 text-xs mt-1">Atualiza no próximo dia</p>
             </div>
-            {bancoInicial?.negativo && (
+            {bancoAtual?.negativo && (
               <div className="bg-red-500/30 border border-red-500/50 text-red-200 px-2 py-1 rounded-lg text-xs font-bold">
                 ⚠️ Devendo
               </div>
